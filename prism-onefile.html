@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prism — Anonymous Stories</title>
+  <style>
+    :root{--bg:#0f1222;--fg:#e7e7ef;--card:#1a1d32;--accent:#8de1ff}
+    html,body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .wrap{max-width:920px;margin:0 auto;padding:16px}
+    header{padding:24px 16px;border-bottom:1px solid #222}
+    header h1{margin:0;font-size:28px}
+    header .tag{color:#9aa0b5;margin:6px 0 10px}
+    nav a{margin-right:12px}
+    .card{background:var(--card);padding:16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);margin:16px 0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+    .btn{background:var(--accent);color:#001826;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:default}
+    .muted{color:#9aa0b5}
+    .story{max-width:720px;margin:0 auto}
+    .story h1{margin:0 0 8px}
+    .meta{color:#9aa0b5;font-size:14px;margin-bottom:12px}
+    footer{display:flex;align-items:center;gap:12px;padding:16px;border-top:1px solid #222}
+    code{background:#0c0f1f;padding:2px 6px;border-radius:6px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <h1>Prism</h1>
+    <p class="tag">anonymous short stories & experiments</p>
+    <nav>
+      <a href="#home">Home</a>
+      <a href="#stories">Stories</a>
+      <a href="#fun">Fun</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <!-- HOME -->
+    <section id="home" class="card">
+      <h2>Welcome</h2>
+      <p>This is your one‑file website. To add stories, scroll down to the <strong>🔧 Editor</strong> box and paste your story in the simple form.</p>
+      <p class="muted">Tip: Because it's one file, you only need to upload <code>index.html</code> to GitHub Pages.</p>
+    </section>
+
+    <!-- STORIES LIST -->
+    <section id="stories" class="card">
+      <h2>Stories</h2>
+      <ul id="storyList"></ul>
+      <p class="muted">Click a title to read. Add more in the editor below.</p>
+    </section>
+
+    <!-- STORY VIEWER -->
+    <section id="reader" class="card hidden">
+      <article class="story">
+        <a href="#stories" class="muted">← Back to Stories</a>
+        <h1 id="rTitle"></h1>
+        <div id="rMeta" class="meta"></div>
+        <div id="rBody"></div>
+      </article>
+    </section>
+
+    <!-- FUN -->
+    <section id="fun" class="card">
+      <h2>Fun</h2>
+      <p>Random Prompt Generator</p>
+      <button class="btn" id="gen">Give me a prompt</button>
+      <p id="out" class="muted" style="margin-top:10px"></p>
+    </section>
+
+    <!-- SIMPLE EDITOR (you can delete this whole section later) -->
+    <section id="editor" class="card">
+      <h2>🔧 Editor (add a story)</h2>
+      <p class="muted">Fill these three boxes and click “Add Story.” Your story saves in your browser. To make it permanent, re‑download this page (or copy the JSON) and upload again to GitHub.</p>
+      <div class="grid">
+        <div>
+          <label>Title</label><br/>
+          <input id="eTitle" style="width:100%;padding:8px;border-radius:10px;border:1px solid #333;background:#0c0f1f;color:#e7e7ef">
+        </div>
+        <div>
+          <label>Pen Name (optional)</label><br/>
+          <input id="eAuthor" style="width:100%;padding:8px;border-radius:10px;border:1px solid #333;background:#0c0f1f;color:#e7e7ef">
+        </div>
+        <div>
+          <label>Date</label><br/>
+          <input id="eDate" placeholder="YYYY-MM-DD" style="width:100%;padding:8px;border-radius:10px;border:1px solid #333;background:#0c0f1f;color:#e7e7ef">
+        </div>
+      </div>
+      <p style="margin-top:10px">
+        <label>Story (paragraphs allowed)</label><br/>
+        <textarea id="eBody" rows="8" style="width:100%;padding:8px;border-radius:10px;border:1px solid #333;background:#0c0f1f;color:#e7e7ef"></textarea>
+      </p>
+      <button class="btn" id="addStory">Add Story</button>
+      <button class="btn" id="download" style="margin-left:8px">Download Updated Page</button>
+      <p class="muted" style="margin-top:10px">Advanced: click <a href="#data">#data</a> below to see the JSON that stores your stories in this page.</p>
+    </section>
+
+    <!-- DATA (stories live here as JSON for the one-file site) -->
+    <section id="data" class="card">
+      <h2>Data (you can ignore this)</h2>
+      <textarea id="jsonBox" rows="10" style="width:100%;padding:8px;border-radius:10px;border:1px solid #333;background:#0c0f1f;color:#e7e7ef"></textarea>
+      <p class="muted">If you edit this JSON, click “Replace from JSON” to update the list.</p>
+      <button class="btn" id="replace">Replace from JSON</button>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <button class="btn" id="moodBtn">Change mood</button>
+    <span id="moodLabel" class="muted"></span>
+  </footer>
+
+  <script>
+    // ===== THEME MOODS =====
+    const moods = [
+      {bg:'#0f1222', fg:'#e7e7ef', card:'#1a1d32', accent:'#8de1ff', name:'Night'},
+      {bg:'#0f1f12', fg:'#e7efe7', card:'#16321a', accent:'#9cff8d', name:'Forest'},
+      {bg:'#1f0f12', fg:'#feeef4', card:'#321a1f', accent:'#ff8db3', name:'Rose'},
+      {bg:'#0f151f', fg:'#eef6ff', card:'#172235', accent:'#8db2ff', name:'Deep Blue'}
+    ];
+    function setMood(i){
+      const m=moods[i % moods.length];
+      document.documentElement.style.setProperty('--bg', m.bg);
+      document.documentElement.style.setProperty('--fg', m.fg);
+      document.documentElement.style.setProperty('--card', m.card);
+      document.documentElement.style.setProperty('--accent', m.accent);
+      const label = document.getElementById('moodLabel');
+      if (label) label.textContent = 'Mood: '+m.name;
+      localStorage.setItem('moodIndex', i);
+    }
+    let mi = +localStorage.getItem('moodIndex') || 0; setMood(mi);
+    document.getElementById('moodBtn').addEventListener('click', ()=>{ mi=(mi+1)%moods.length; setMood(mi); });
+
+    // ===== STORIES DATA (inline JSON) =====
+    const defaultStories = [
+      // Example story (remove if you want)
+      { title: "Hello, Prism", author: "Anon", date: "2025-08-29", body: "This is your first story. Replace me with your own text." }
+    ];
+    let stories = JSON.parse(localStorage.getItem('prismStories') || 'null') || defaultStories;
+
+    // ===== RENDER LIST =====
+    function renderList(){
+      const ul = document.getElementById('storyList');
+      ul.innerHTML='';
+      stories.forEach((s, idx)=>{
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#read-'+idx;
+        a.textContent = s.title;
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      document.getElementById('jsonBox').value = JSON.stringify(stories, null, 2);
+    }
+    renderList();
+
+    // ===== ROUTER (hash) =====
+    function route(){
+      const h = location.hash;
+      const reader = document.getElementById('reader');
+      if (h.startsWith('#read-')){
+        const i = +h.split('-')[1];
+        const s = stories[i];
+        if (!s){ location.hash = '#stories'; return; }
+        document.getElementById('rTitle').textContent = s.title;
+        document.getElementById('rMeta').textContent = (s.author? s.author+' · ' : '') + (s.date || '');
+        document.getElementById('rBody').innerHTML = (s.body||'').split('\n').map(p=>'<p>'+p+'</p>').join('');
+        reader.classList.remove('hidden');
+        document.getElementById('stories').classList.add('hidden');
+      } else {
+        reader.classList.add('hidden');
+        document.getElementById('stories').classList.remove('hidden');
+      }
+    }
+    window.addEventListener('hashchange', route); route();
+
+    // ===== ADD STORY (editor) =====
+    document.getElementById('addStory').addEventListener('click', ()=>{
+      const t = document.getElementById('eTitle').value.trim();
+      const a = document.getElementById('eAuthor').value.trim();
+      const d = document.getElementById('eDate').value.trim();
+      const b = document.getElementById('eBody').value.trim();
+      if(!t || !b){ alert('Title and Story are required.'); return; }
+      stories.push({title:t, author:a, date:d, body:b});
+      localStorage.setItem('prismStories', JSON.stringify(stories));
+      renderList();
+      document.getElementById('eTitle').value='';
+      document.getElementById('eAuthor').value='';
+      document.getElementById('eDate').value='';
+      document.getElementById('eBody').value='';
+      location.hash = '#stories';
+      alert('Story added (saved in this browser). To make it permanent, click "Download Updated Page" and upload that file to GitHub.');
+    });
+
+    // ===== PROMPTS =====
+    const prompts=[
+      "A letter arrives from your future self, but it's written on a grocery receipt.",
+      "Every mirror in your house starts lagging by 3 seconds.",
+      "You receive a voicemail from a city that doesn't exist.",
+      "A stray cat returns your lost wallet, but it's heavier now.",
+      "The moon texts you at 3AM: 'u up?'"
+    ];
+    document.getElementById('gen').addEventListener('click', ()=>{
+      const p = prompts[Math.floor(Math.random()*prompts.length)];
+      document.getElementById('out').textContent = p;
+    });
+
+    // ===== JSON BOX (advanced) =====
+    document.getElementById('replace').addEventListener('click', ()=>{
+      try{
+        const j = JSON.parse(document.getElementById('jsonBox').value);
+        if(!Array.isArray(j)) throw new Error('JSON must be an array');
+        stories = j;
+        localStorage.setItem('prismStories', JSON.stringify(stories));
+        renderList(); route();
+        alert('Replaced stories from JSON.');
+      }catch(e){ alert('Invalid JSON: '+e.message); }
+    });
+
+    // ===== DOWNLOAD UPDATED PAGE =====
+    document.getElementById('download').addEventListener('click', ()=>{
+      // Embed current stories JSON into a copy of this file for re-upload
+      const html = document.documentElement.outerHTML
+        .replace('const defaultStories = [\n      // Example story (remove if you want)\n      { title: "Hello, Prism", author: "Anon", date: "2025-08-29", body: "This is your first story. Replace me with your own text." }\n    ];', 'const defaultStories = '+JSON.stringify(stories,null,2)+';');
+      const blob = new Blob([html], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'index.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</body>
+</html>
