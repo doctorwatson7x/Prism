@@ -1,1 +1,0 @@
-document.getElementById('moodBtn').addEventListener('click',()=>alert('Mood change coming soon!'));
