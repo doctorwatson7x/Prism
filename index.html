@@ -1,8 +1,544 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>Prism test</title></head>
-  <body style="font-family:system-ui;background:#0b1220;color:#e5e7eb;padding:2rem">
-    <h1>Prism is live ✅</h1>
-    <p>If you can see this, GitHub Pages is working.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prism</title>
+  <style>
+    :root{
+      --bg1:#020617; --bg2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
+      --ink:#a5b4fc; --indigo:#6366f1; --panel:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.1);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0; height:100%; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background: radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed; color:var(--text)}
+    a{color:inherit; text-decoration:none}
+    .container{max-width:1000px; margin:0 auto; padding:0 16px 80px}
+    header{position:sticky; top:0; backdrop-filter: blur(8px); border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); z-index:10}
+    header .row{display:flex; align-items:center; justify-content:space-between; padding:12px 0}
+    nav a{padding:8px 12px; border-radius:12px; color:#cbd5e1}
+    nav a:hover{background:rgba(255,255,255,0.08); color:white}
+    .logo{display:flex; align-items:center; gap:8px}
+    .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .tile{position:relative; overflow:hidden; border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; transition:.2s}
+    .tile:hover{background:rgba(255,255,255,0.08)}
+    .card{border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)}
+    .muted{color:var(--muted)}
+    .btn{display:inline-block; background:#4f46e5; color:white; padding:10px 14px; border-radius:12px; border:0; cursor:pointer}
+    .btn:hover{background:#6366f1}
+    footer{margin-top:32px; display:flex; justify-content:space-between; color:#94a3b8; font-size:14px}
+    .stars::before{content:""; position:fixed; inset:0; background-image:radial-gradient(rgba(99,102,241,0.08) 1px, transparent 1px); background-size:24px 24px; opacity:.4; pointer-events:none}
+    textarea,input{width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:var(--text); padding:10px 12px; border-radius:12px}
+    textarea{min-height:90px; resize:vertical}
+    .list{list-style:none; margin:0; padding:0}
+    .post{border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:16px}
+    .eyeShell{height:220px; display:grid; place-items:center}
+    .eyes{display:flex; gap:24px}
+    .eye{position:relative; height:110px; width:110px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.3); box-shadow: inset 0 8px 30px rgba(0,0,0,.35), 0 2px 30px rgba(99,102,241,.35); overflow:hidden}
+    .eye::before{content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 30%, rgba(226,232,240,.9), rgba(203,213,225,.8), transparent 70%)}
+    .pupil{position:absolute; top:50%; left:50%; height:36px; width:36px; background:#1e1b4b; border-radius:50%; transform:translate(-50%,-50%);}
+    .pupil::after{content:""; position:absolute; inset:4px; background:#4f46e5; border-radius:50%}
+    .glint{position:absolute; top:6px; left:12px; height:10px; width:10px; border-radius:50%; background:rgba(255,255,255,0.9)}
+    .pulse{height:48px; border:1px solid rgba(99,102,241,.35); border-radius:12px}
+  </style>
+</head>
+<body class="stars">
+  <div class="container">
+    <header>
+      <div class="row">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden>
+            <polygon points="32,6 58,54 6,54" fill="none" stroke="#818cf8" stroke-width="2"></polygon>
+            <line x1="0" y1="22" x2="28" y2="28" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="36" y1="30" x2="64" y2="18" stroke="#fb7185" stroke-width="2"></line>
+            <line x1="36" y1="32" x2="64" y2="32" stroke="#34d399" stroke-width="2"></line>
+            <line x1="36" y1="34" x2="64" y2="46" stroke="#22d3ee" stroke-width="2"></line>
+          </svg>
+          <div style="font-weight:600; letter-spacing:.08em; font-size:20px">Prism</div>
+        </div>
+        <nav>
+          <a href="#home" id="navHome">Home</a>
+          <a href="#stories" id="navStories">Stories</a>
+          <a href="#fun" id="navFun">Fun</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="app" style="padding-top:24px"></main>
+
+    <footer>
+      <div>© <span id="year"></span> Prism. Forged in the void.</div>
+      <div class="muted">Alien-sleek starter · No backend · Free deploy</div>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function h(tag, attrs={}, ...children){
+      const el = document.createElement(tag);
+      for(const k in attrs){
+        if(k.startsWith('on') && typeof attrs[k]==='function'){ el.addEventListener(k.slice(2).toLowerCase(), attrs[k]); }
+        else if(k==='html'){ el.innerHTML = attrs[k]; }
+        else { el.setAttribute(k, attrs[k]); }
+      }
+      for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
+      return el;
+    }
+
+    const STORAGE_KEY='prism_stories_v1';
+    function loadStories(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
+    function saveStories(items){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch{} }
+
+    function Home(){
+      const grid = h('section', {class:'grid'});
+      grid.append(
+        Tile('Stories','#stories','Write and read entries. Saved locally; sorted by pen name & date.', IconDoc() ),
+        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye() )
+      );
+      const card = Card('Look & Feel','Inside an alien spaceship',
+        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the “refined alien cruiser” vibe.'})
+      );
+      return h('div', {}, grid, h('div', {style:'height:12px'}), card);
+    }
+
+    function Tile(title, href, desc, icon){
+      const a = h('a', {href, class:'tile'});
+      const row = h('div', {style:'display:flex; gap:16px; align-items:flex-start'});
+      const iconWrap = h('div', {style:'opacity:.85'}); iconWrap.append(icon);
+      const text = h('div', {},
+        h('div', {style:'font-weight:600; font-size:20px'}, title),
+        h('div', {class:'muted', style:'margin-top:6px'}, desc),
+        h('span', {style:'display:inline-block; margin-top:12px; color:#c7d2fe'}, 'Open →')
+      );
+      row.append(iconWrap, text);
+      a.append(row);
+      return a;
+    }
+
+    function Card(title, subtitle, body, actions){
+      const head = h('div', {style:'display:flex; justify-content:space-between; gap:12px; align-items:flex-start'});
+      const left = h('div',{},
+        h('div',{style:'font-weight:600; font-size:18px'}, title),
+        subtitle ? h('div',{class:'muted', style:'margin-top:4px'}, subtitle) : null
+      );
+      head.append(left, actions||h('span'));
+      const card = h('div',{class:'card'});
+      card.append(head, h('div',{style:'margin-top:14px'}, body));
+      return card;
+    }
+
+    function IconDoc(){
+      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
+      s.innerHTML = '<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';
+      return s;
+    }
+    function IconEye(){
+      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
+      s.innerHTML = '<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';
+      return s;
+    }
+
+    function Stories(){
+      const items = loadStories();
+      const form = h('form', {onsubmit: (e)=>{ e.preventDefault(); add(); }});
+      const pen = h('input', {placeholder:'Pen name', maxlength:'40'});
+      const text = h('textarea', {placeholder:'Share a thought, a micro-story, a poem…', maxlength:'5000'});
+      const postBtn = h('button', {class:'btn', type:'submit'}, 'Post');
+      const clearBtn = h('button', {class:'btn', type:'button', onclick:()=>{ if(confirm('Clear all local stories?')){ saveStories([]); render(); } }, style:'background:#dc2626; margin-left:8px'}, 'Clear all');
+      form.append(
+        h('div', {class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
+          pen, text
+        ),
+        h('div', {style:'display:flex; justify-content:flex-end; gap:8px; margin-top:10px'}, postBtn, clearBtn)
+      );
+
+      function add(){
+        if(!pen.value.trim() || !text.value.trim()) return;
+        const entry = { id: crypto.randomUUID(), pen: pen.value.trim(), text: text.value.trim(), date: new Date().toISOString() };
+        const next = [entry, ...loadStories()];
+        saveStories(next);
+        render();
+      }
+
+      const list = h('ul', {class:'list'});
+      const sorted = items.sort((a,b)=>{
+        const penCmp = a.pen.localeCompare(b.pen, undefined, {sensitivity:'base'});
+        if(penCmp!==0) return penCmp;
+        return new Date(b.date) - new Date(a.date);
+      });
+      if(sorted.length===0) list.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
+      else for(const it of sorted){
+        list.append(h('li',{class:'post', style:'margin-top:12px'},
+          h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
+            h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, it.pen),
+            h('time',{class:'muted'}, new Date(it.date).toLocaleString())
+          ),
+          h('div',{style:'margin-top:8px; white-space:pre-wrap'}, it.text)
+        ));
+      }
+
+      return h('div', {},
+        Card('Write a story','Pick a pen name per post; entries sort by name & date', form),
+        h('div',{style:'height:14px'}),
+        Card('Community feed', sorted.length + ' entr' + (sorted.length===1?'y':'ies'), list)
+      );
+    }
+
+    function Fun(){
+      const eyesWrap = h('div',{class:'eyeShell'});
+      const eyes = h('div',{class:'eyes'});
+      eyesWrap.append(eyes);
+
+      function makeEye(){
+        const eye = h('div',{class:'eye'});
+        const pupil = h('div',{class:'pupil'});
+        const glint = h('div',{class:'glint'});
+        eye.append(pupil, glint);
+        return {eye, pupil};
+      }
+      const e1 = makeEye(), e2 = makeEye();
+      eyes.append(e1.eye, e2.eye);
+
+      let centers = [];
+      function measure(){
+        centers = [e1.eye, e2.eye].map(el=>{
+          const r = el.getBoundingClientRect();
+          return { x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY };
+        });
+      }
+      window.addEventListener('resize', measure);
+      setTimeout(measure, 50);
+
+      window.addEventListener('mousemove', (e)=>{
+        if(centers.length<2) measure();
+        [e1, e2].forEach((E, i)=>{
+          const c = centers[i]; if(!c) return;
+          const dx = e.pageX - c.x, dy = e.pageY - c.y;
+          const ang = Math.atan2(dy, dx);
+          const max = 10;
+          const px = Math.cos(ang)*max, py = Math.sin(ang)*max;
+          E.pupil.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
+        });
+      });
+
+      const toys = h('div', {class:'grid'});
+      toys.append(
+        Toy('Click-Pulse','Click to charge a pulse','Charge', ()=>{
+          pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
+          pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400, easing:'ease-out'});
+        }),
+        Toy('Dice','Random d6 roll','Roll', ()=> alert('You rolled a ' + (1+Math.floor(Math.random()*6)) + '!')),
+        Toy('Color Drift','Subtle neon shimmer','Pulse grid', ()=>{
+          document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200});
+        }),
+      );
+      const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
+
+      return h('div',{},
+        Card('The Eyes','They’ll follow your cursor…', eyesWrap),
+        h('div',{style:'height:14px'}),
+        Card('Mini-toys','Room for future games', h('div',{}, toys, pulse))
+      );
+    }
+
+    function Toy(title, desc, text, onClick){
+      const card = h('div',{class:'card'});
+      card.append(
+        h('div',{},
+          h('div',{style:'font-weight:600'}, title),
+          h('div',{class:'muted', style:'margin-top:6px'}, desc)
+        ),
+        h('div', {style:'margin-top:10px'},
+          h('button',{class:'btn', onclick:onClick}, text)
+        )
+      );
+      return card;
+    }
+
+    function route(){
+      const hash = location.hash || '#home';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      if(hash.starts
+
+
+
+
+ChatGPT said:
+No problem—here’s the entire single-file site again. Copy everything below into a new file named index.html at the root of your repo (doctorwatson7x/Prism) and commit it. Then in Settings → Pages, set Source = main / (root). Open https://doctorwatson7x.github.io/Prism/.
+
+html
+Copy code
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prism</title>
+  <style>
+    :root{
+      --bg1:#020617; --bg2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
+      --ink:#a5b4fc; --indigo:#6366f1; --panel:rgba(255,255,255,0.04);
+      --border:rgba(255,255,255,0.1);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0; height:100%; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background: radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed; color:var(--text)}
+    a{color:inherit; text-decoration:none}
+    .container{max-width:1000px; margin:0 auto; padding:0 16px 80px}
+    header{position:sticky; top:0; backdrop-filter: blur(8px); border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); z-index:10}
+    header .row{display:flex; align-items:center; justify-content:space-between; padding:12px 0}
+    nav a{padding:8px 12px; border-radius:12px; color:#cbd5e1}
+    nav a:hover{background:rgba(255,255,255,0.08); color:white}
+    .logo{display:flex; align-items:center; gap:8px}
+    .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .tile{position:relative; overflow:hidden; border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; transition:.2s}
+    .tile:hover{background:rgba(255,255,255,0.08)}
+    .card{border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)}
+    .muted{color:var(--muted)}
+    .btn{display:inline-block; background:#4f46e5; color:white; padding:10px 14px; border-radius:12px; border:0; cursor:pointer}
+    .btn:hover{background:#6366f1}
+    footer{margin-top:32px; display:flex; justify-content:space-between; color:#94a3b8; font-size:14px}
+    .stars::before{content:""; position:fixed; inset:0; background-image:radial-gradient(rgba(99,102,241,0.08) 1px, transparent 1px); background-size:24px 24px; opacity:.4; pointer-events:none}
+    textarea,input{width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:var(--text); padding:10px 12px; border-radius:12px}
+    textarea{min-height:90px; resize:vertical}
+    .list{list-style:none; margin:0; padding:0}
+    .post{border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:16px}
+    .eyeShell{height:220px; display:grid; place-items:center}
+    .eyes{display:flex; gap:24px}
+    .eye{position:relative; height:110px; width:110px; border-radius:50%; background:rgba(255,255,255,0.9); border:1px solid rgba(255,255,255,0.3); box-shadow: inset 0 8px 30px rgba(0,0,0,.35), 0 2px 30px rgba(99,102,241,.35); overflow:hidden}
+    .eye::before{content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 30%, rgba(226,232,240,.9), rgba(203,213,225,.8), transparent 70%)}
+    .pupil{position:absolute; top:50%; left:50%; height:36px; width:36px; background:#1e1b4b; border-radius:50%; transform:translate(-50%,-50%);}
+    .pupil::after{content:""; position:absolute; inset:4px; background:#4f46e5; border-radius:50%}
+    .glint{position:absolute; top:6px; left:12px; height:10px; width:10px; border-radius:50%; background:rgba(255,255,255,0.9)}
+    .pulse{height:48px; border:1px solid rgba(99,102,241,.35); border-radius:12px}
+  </style>
+</head>
+<body class="stars">
+  <div class="container">
+    <header>
+      <div class="row">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden>
+            <polygon points="32,6 58,54 6,54" fill="none" stroke="#818cf8" stroke-width="2"></polygon>
+            <line x1="0" y1="22" x2="28" y2="28" stroke="#cbd5e1" stroke-width="2"></line>
+            <line x1="36" y1="30" x2="64" y2="18" stroke="#fb7185" stroke-width="2"></line>
+            <line x1="36" y1="32" x2="64" y2="32" stroke="#34d399" stroke-width="2"></line>
+            <line x1="36" y1="34" x2="64" y2="46" stroke="#22d3ee" stroke-width="2"></line>
+          </svg>
+          <div style="font-weight:600; letter-spacing:.08em; font-size:20px">Prism</div>
+        </div>
+        <nav>
+          <a href="#home" id="navHome">Home</a>
+          <a href="#stories" id="navStories">Stories</a>
+          <a href="#fun" id="navFun">Fun</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="app" style="padding-top:24px"></main>
+
+    <footer>
+      <div>© <span id="year"></span> Prism. Forged in the void.</div>
+      <div class="muted">Alien-sleek starter · No backend · Free deploy</div>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    function h(tag, attrs={}, ...children){
+      const el = document.createElement(tag);
+      for(const k in attrs){
+        if(k.startsWith('on') && typeof attrs[k]==='function'){ el.addEventListener(k.slice(2).toLowerCase(), attrs[k]); }
+        else if(k==='html'){ el.innerHTML = attrs[k]; }
+        else { el.setAttribute(k, attrs[k]); }
+      }
+      for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
+      return el;
+    }
+
+    const STORAGE_KEY='prism_stories_v1';
+    function loadStories(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
+    function saveStories(items){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch{} }
+
+    function Home(){
+      const grid = h('section', {class:'grid'});
+      grid.append(
+        Tile('Stories','#stories','Write and read entries. Saved locally; sorted by pen name & date.', IconDoc() ),
+        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye() )
+      );
+      const card = Card('Look & Feel','Inside an alien spaceship',
+        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the “refined alien cruiser” vibe.'})
+      );
+      return h('div', {}, grid, h('div', {style:'height:12px'}), card);
+    }
+
+    function Tile(title, href, desc, icon){
+      const a = h('a', {href, class:'tile'});
+      const row = h('div', {style:'display:flex; gap:16px; align-items:flex-start'});
+      const iconWrap = h('div', {style:'opacity:.85'}); iconWrap.append(icon);
+      const text = h('div', {},
+        h('div', {style:'font-weight:600; font-size:20px'}, title),
+        h('div', {class:'muted', style:'margin-top:6px'}, desc),
+        h('span', {style:'display:inline-block; margin-top:12px; color:#c7d2fe'}, 'Open →')
+      );
+      row.append(iconWrap, text);
+      a.append(row);
+      return a;
+    }
+
+    function Card(title, subtitle, body, actions){
+      const head = h('div', {style:'display:flex; justify-content:space-between; gap:12px; align-items:flex-start'});
+      const left = h('div',{},
+        h('div',{style:'font-weight:600; font-size:18px'}, title),
+        subtitle ? h('div',{class:'muted', style:'margin-top:4px'}, subtitle) : null
+      );
+      head.append(left, actions||h('span'));
+      const card = h('div',{class:'card'});
+      card.append(head, h('div',{style:'margin-top:14px'}, body));
+      return card;
+    }
+
+    function IconDoc(){
+      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
+      s.innerHTML = '<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';
+      return s;
+    }
+    function IconEye(){
+      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
+      s.innerHTML = '<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';
+      return s;
+    }
+
+    function Stories(){
+      const items = loadStories();
+      const form = h('form', {onsubmit: (e)=>{ e.preventDefault(); add(); }});
+      const pen = h('input', {placeholder:'Pen name', maxlength:'40'});
+      const text = h('textarea', {placeholder:'Share a thought, a micro-story, a poem…', maxlength:'5000'});
+      const postBtn = h('button', {class:'btn', type:'submit'}, 'Post');
+      const clearBtn = h('button', {class:'btn', type:'button', onclick:()=>{ if(confirm('Clear all local stories?')){ saveStories([]); render(); } }, style:'background:#dc2626; margin-left:8px'}, 'Clear all');
+      form.append(
+        h('div', {class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
+          pen, text
+        ),
+        h('div', {style:'display:flex; justify-content:flex-end; gap:8px; margin-top:10px'}, postBtn, clearBtn)
+      );
+
+      function add(){
+        if(!pen.value.trim() || !text.value.trim()) return;
+        const entry = { id: crypto.randomUUID(), pen: pen.value.trim(), text: text.value.trim(), date: new Date().toISOString() };
+        const next = [entry, ...loadStories()];
+        saveStories(next);
+        render();
+      }
+
+      const list = h('ul', {class:'list'});
+      const sorted = items.sort((a,b)=>{
+        const penCmp = a.pen.localeCompare(b.pen, undefined, {sensitivity:'base'});
+        if(penCmp!==0) return penCmp;
+        return new Date(b.date) - new Date(a.date);
+      });
+      if(sorted.length===0) list.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
+      else for(const it of sorted){
+        list.append(h('li',{class:'post', style:'margin-top:12px'},
+          h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
+            h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, it.pen),
+            h('time',{class:'muted'}, new Date(it.date).toLocaleString())
+          ),
+          h('div',{style:'margin-top:8px; white-space:pre-wrap'}, it.text)
+        ));
+      }
+
+      return h('div', {},
+        Card('Write a story','Pick a pen name per post; entries sort by name & date', form),
+        h('div',{style:'height:14px'}),
+        Card('Community feed', sorted.length + ' entr' + (sorted.length===1?'y':'ies'), list)
+      );
+    }
+
+    function Fun(){
+      const eyesWrap = h('div',{class:'eyeShell'});
+      const eyes = h('div',{class:'eyes'});
+      eyesWrap.append(eyes);
+
+      function makeEye(){
+        const eye = h('div',{class:'eye'});
+        const pupil = h('div',{class:'pupil'});
+        const glint = h('div',{class:'glint'});
+        eye.append(pupil, glint);
+        return {eye, pupil};
+      }
+      const e1 = makeEye(), e2 = makeEye();
+      eyes.append(e1.eye, e2.eye);
+
+      let centers = [];
+      function measure(){
+        centers = [e1.eye, e2.eye].map(el=>{
+          const r = el.getBoundingClientRect();
+          return { x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY };
+        });
+      }
+      window.addEventListener('resize', measure);
+      setTimeout(m
+easure, 50);
+
+      window.addEventListener('mousemove', (e)=>{
+        if(centers.length<2) measure();
+        [e1, e2].forEach((E, i)=>{
+          const c = centers[i]; if(!c) return;
+          const dx = e.pageX - c.x, dy = e.pageY - c.y;
+          const ang = Math.atan2(dy, dx);
+          const max = 10;
+          const px = Math.cos(ang)*max, py = Math.sin(ang)*max;
+          E.pupil.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
+        });
+      });
+
+      const toys = h('div', {class:'grid'});
+      toys.append(
+        Toy('Click-Pulse','Click to charge a pulse','Charge', ()=>{
+          pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
+          pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400, easing:'ease-out'});
+        }),
+        Toy('Dice','Random d6 roll','Roll', ()=> alert('You rolled a ' + (1+Math.floor(Math.random()*6)) + '!')),
+        Toy('Color Drift','Subtle neon shimmer','Pulse grid', ()=>{
+          document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200});
+        }),
+      );
+      const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
+
+      return h('div',{},
+        Card('The Eyes','They’ll follow your cursor…', eyesWrap),
+        h('div',{style:'height:14px'}),
+        Card('Mini-toys','Room for future games', h('div',{}, toys, pulse))
+      );
+    }
+
+    function Toy(title, desc, text, onClick){
+      const card = h('div',{class:'card'});
+      card.append(
+        h('div',{},
+          h('div',{style:'font-weight:600'}, title),
+          h('div',{class:'muted', style:'margin-top:6px'}, desc)
+        ),
+        h('div', {style:'margin-top:10px'},
+          h('button',{class:'btn', onclick:onClick}, text)
+        )
+      );
+      return card;
+    }
+
+    function route(){
+      const hash = location.hash || '#home';
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      if(hash.startsWith('#stories')) app.append(Stories());
+      else if(hash.startsWith('#fun')) app.append(Fun());
+      else app.append(Home());
+    }
+    window.addEventListener('hashchange', route);
+    route();
+  </script>
+</body>
 </html>
