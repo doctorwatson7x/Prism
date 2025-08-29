@@ -8,7 +8,7 @@
     :root{
       --bg1:#020617; --bg2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
       --ink:#a5b4fc; --indigo:#6366f1; --panel:rgba(255,255,255,0.04);
-      --border:rgba(255,255,255,0.1);
+      --border:rgba(255,255,255,0.1); --danger:#dc2626; --ok:#10b981;
     }
     *{box-sizing:border-box}
     html,body{margin:0; height:100%; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background: radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed; color:var(--text)}
@@ -18,6 +18,7 @@
     header .row{display:flex; align-items:center; justify-content:space-between; padding:12px 0}
     nav a{padding:8px 12px; border-radius:12px; color:#cbd5e1}
     nav a:hover{background:rgba(255,255,255,0.08); color:white}
+    nav a.active{background:rgba(255,255,255,0.12); color:white; outline:1px solid rgba(255,255,255,0.08)}
     .logo{display:flex; align-items:center; gap:8px}
     .grid{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
     .tile{position:relative; overflow:hidden; border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; transition:.2s}
@@ -25,7 +26,10 @@
     .card{border:1px solid var(--border); background:var(--panel); border-radius:20px; padding:24px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)}
     .muted{color:var(--muted)}
     .btn{display:inline-block; background:#4f46e5; color:white; padding:10px 14px; border-radius:12px; border:0; cursor:pointer}
+    .btn[disabled]{opacity:.6; cursor:not-allowed}
     .btn:hover{background:#6366f1}
+    .btn-danger{background:var(--danger)}
+    .btn-danger:hover{background:#ef4444}
     footer{margin-top:32px; display:flex; justify-content:space-between; color:#94a3b8; font-size:14px}
     .stars::before{content:""; position:fixed; inset:0; background-image:radial-gradient(rgba(99,102,241,0.08) 1px, transparent 1px); background-size:24px 24px; opacity:.4; pointer-events:none}
     textarea,input{width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:var(--text); padding:10px 12px; border-radius:12px}
@@ -40,6 +44,10 @@
     .pupil::after{content:""; position:absolute; inset:4px; background:#4f46e5; border-radius:50%}
     .glint{position:absolute; top:6px; left:12px; height:10px; width:10px; border-radius:50%; background:rgba(255,255,255,0.9)}
     .pulse{height:48px; border:1px solid rgba(99,102,241,.35); border-radius:12px}
+    .row-end{display:flex; gap:8px; align-items:center}
+    .count{font-size:12px; color:#a5b4fc}
+    /* Toast */
+    .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#d1fae5; padding:10px 14px; border-radius:12px; box-shadow:0 6px 30px rgba(16,185,129,0.25); z-index:50}
   </style>
 </head>
 <body class="stars">
@@ -75,6 +83,13 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
+    const STORAGE_KEY='prism_stories_v1';
+    const LAST_PEN_KEY='prism_last_pen';
+    const LAST_POST_AT='prism_last_post_at';
+    const MAX_LEN = 2000;           // story length cap
+    const COOLDOWN_MS = 10_000;     // 10s anti-spam
+    const DUP_WINDOW_MS = 120_000;  // 2 min duplicate window
+
     function h(tag, attrs={}, ...children){
       const el = document.createElement(tag);
       for(const k in attrs){
@@ -85,10 +100,24 @@
       for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
       return el;
     }
+    const esc = (s) => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 
-    const STORAGE_KEY='prism_stories_v1';
+    function toast(msg){
+      const t = h('div',{class:'toast'}, msg);
+      document.body.appendChild(t);
+      setTimeout(()=>{ t.remove(); }, 1600);
+    }
+
     function loadStories(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
     function saveStories(items){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch{} }
+
+    function setActiveNav(){
+      const hash = location.hash || '#home';
+      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+      if(hash.startsWith('#stories')) document.getElementById('navStories').classList.add('active');
+      else if(hash.startsWith('#fun')) document.getElementById('navFun').classList.add('active');
+      else document.getElementById('navHome').classList.add('active');
+    }
 
     function Home(){
       const grid = h('section', {class:'grid'});
@@ -96,8 +125,8 @@
         Tile('Stories','#stories','Write and read entries. Saved locally; sorted by pen name & date.', IconDoc() ),
         Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye() )
       );
-      const card = Card('Look & Feel','Inside an alien spaceship',
-        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the “refined alien cruiser” vibe.'})
+      const card = Card('Experimental website','',
+        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
       );
       return h('div', {}, grid, h('div', {style:'height:12px'}), card);
     }
@@ -140,24 +169,90 @@
     }
 
     function Stories(){
-      const items = loadStories();
+      let items = loadStories();
+      const lastPen = localStorage.getItem(LAST_PEN_KEY) || '';
+
       const form = h('form', {onsubmit: (e)=>{ e.preventDefault(); add(); }});
-      const pen = h('input', {placeholder:'Pen name', maxlength:'40'});
-      const text = h('textarea', {placeholder:'Share a thought, a micro-story, a poem…', maxlength:'5000'});
-      const postBtn = h('button', {class:'btn', type:'submit'}, 'Post');
-      const clearBtn = h('button', {class:'btn', type:'button', onclick:()=>{ if(confirm('Clear all local stories?')){ saveStories([]); render(); } }, style:'background:#dc2626; margin-left:8px'}, 'Clear all');
+      const pen = h('input', {placeholder:'Pen name', maxlength:'40', value:lastPen});
+      const text = h('textarea', {placeholder:`Share a thought (max ${MAX_LEN} chars)…`, maxlength:String(MAX_LEN)});
+      const count = h('span', {class:'count'}, '0/' + MAX_LEN);
+      const postBtn = h('button', {class:'btn', type:'submit', disabled:true}, 'Post');
+      const clearBtn = h('button', {class:'btn btn-danger', type:'button', onclick:()=>{ if(confirm('Clear all local stories?')){ saveStories([]); items=[]; render(); } }}, 'Clear all');
+
+      text.addEventListener('input', () => {
+        count.textContent = text.value.length + '/' + MAX_LEN;
+        validate();
+      });
+      pen.addEventListener('input', validate);
+
+      function cooldownReady(){
+        const last = Number(localStorage.getItem(LAST_POST_AT)||0);
+        return Date.now() - last >= COOLDOWN_MS;
+      }
+      function validate(){
+        const ok = pen.value.trim().length>0 && text.value.trim().length>0 && cooldownReady();
+        postBtn.disabled = !ok;
+      }
+
       form.append(
         h('div', {class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
           pen, text
         ),
-        h('div', {style:'display:flex; justify-content:flex-end; gap:8px; margin-top:10px'}, postBtn, clearBtn)
+        h('div', {class:'row-end', style:'justify-content:space-between; margin-top:10px'},
+          count,
+          h('div', {class:'row-end'}, postBtn, clearBtn)
+        )
       );
 
+      function isDuplicate(p, t){
+        const clean = (s)=>s.trim().replace(/\s+/g,' ');
+        const now = Date.now();
+        return loadStories().some(e =>
+          e.pen === clean(p) &&
+          e.text === clean(t) &&
+          (now - new Date(e.date).getTime()) < DUP_WINDOW_MS
+        );
+      }
+
       function add(){
-        if(!pen.value.trim() || !text.value.trim()) return;
-        const entry = { id: crypto.randomUUID(), pen: pen.value.trim(), text: text.value.trim(), date: new Date().toISOString() };
-        const next = [entry, ...loadStories()];
-        saveStories(next);
+        if(!cooldownReady()){
+          const left = Math.ceil((COOLDOWN_MS - (Date.now()-Number(localStorage.getItem(LAST_POST_AT)||0)))/1000);
+          alert('Easy there, warp drive cooling down… try again in ~' + left + 's.');
+          return;
+        }
+        const p = pen.value.trim(), t = text.value.trim();
+        if(!p || !t) return;
+
+        if(isDuplicate(p, t)){
+          alert('Looks like you just posted that. Not posting a duplicate.');
+          return;
+        }
+
+        // Optimistic UI feedback
+        postBtn.textContent = 'Posting…';
+        postBtn.disabled = true;
+
+        const entry = { id: crypto.randomUUID(), pen: p, text: t, date: new Date().toISOString() };
+        localStorage.setItem(LAST_PEN_KEY, entry.pen);
+        localStorage.setItem(LAST_POST_AT, String(Date.now()));
+
+        items = [entry, ...loadStories()];
+        saveStories(items);
+
+        // Reset form + feedback
+        text.value = '';
+        count.textContent = '0/' + MAX_LEN;
+        toast('Posted!');
+        postBtn.textContent = 'Posted!';
+        setTimeout(()=>{ postBtn.textContent = 'Post'; validate(); }, 900);
+
+        render(); // re-render list
+      }
+
+      function remove(id){
+        if(!confirm('Delete this entry from this browser?')) return;
+        items = loadStories().filter(x => x.id !== id);
+        saveStories(items);
         render();
       }
 
@@ -167,15 +262,20 @@
         if(penCmp!==0) return penCmp;
         return new Date(b.date) - new Date(a.date);
       });
+
       if(sorted.length===0) list.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
       else for(const it of sorted){
-        list.append(h('li',{class:'post', style:'margin-top:12px'},
-          h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
-            h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, it.pen),
-            h('time',{class:'muted'}, new Date(it.date).toLocaleString())
-          ),
-          h('div',{style:'margin-top:8px; white-space:pre-wrap'}, it.text)
-        ));
+        const del = h('button', {class:'btn btn-danger', type:'button', onclick:()=>remove(it.id)}, 'Delete');
+        list.append(
+          h('li',{class:'post', style:'margin-top:12px'},
+            h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
+              h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen)),
+              h('time',{class:'muted'}, new Date(it.date).toLocaleString())
+            ),
+            h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text)),
+            h('div',{style:'margin-top:10px; display:flex; justify-content:flex-end'}, del)
+          )
+        );
       }
 
       return h('div', {},
@@ -210,19 +310,25 @@
       window.addEventListener('resize', measure);
       setTimeout(measure, 50);
 
-      window.addEventListener('mousemove', (e)=>{
+      function move(pageX, pageY){
         if(centers.length<2) measure();
         [e1, e2].forEach((E, i)=>{
           const c = centers[i]; if(!c) return;
-          const dx = e.pageX - c.x, dy = e.pageY - c.y;
+          const dx = pageX - c.x, dy = pageY - c.y;
           const ang = Math.atan2(dy, dx);
           const max = 10;
           const px = Math.cos(ang)*max, py = Math.sin(ang)*max;
           E.pupil.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
         });
-      });
+      }
+      window.addEventListener('mousemove', (e)=> move(e.pageX, e.pageY), {passive:true});
+      window.addEventListener('touchmove', (e)=> {
+        const t = e.touches[0]; if(t) move(t.pageX, t.pageY);
+      }, {passive:true});
 
       const toys = h('div', {class:'grid'});
+      const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
+
       toys.append(
         Toy('Click-Pulse','Click to charge a pulse','Charge', ()=>{
           pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
@@ -233,7 +339,6 @@
           document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200});
         }),
       );
-      const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
 
       return h('div',{},
         Card('The Eyes','They’ll follow your cursor…', eyesWrap),
@@ -259,12 +364,15 @@
     function render(){ route(); } // used by Stories actions
 
     function route(){
-      const hash = location.hash || '#home';
+      if(!location.hash) location.hash = '#home';
+      const hash = location.hash;
       const app = document.getElementById('app');
       app.innerHTML = '';
       if(hash.startsWith('#stories')) app.append(Stories());
       else if(hash.startsWith('#fun')) app.append(Fun());
       else app.append(Home());
+      setActiveNav();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     window.addEventListener('hashchange', route);
     route();
