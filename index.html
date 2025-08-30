@@ -311,77 +311,122 @@
 
     // ========== Fun page (unchanged visuals) ==========
     function Fun(){
-      const eyesWrap = h('div',{class:'eyeShell'});
-      const eyes = h('div',{class:'eyes'});
-      eyesWrap.append(eyes);
+  // === Eyes (kept from before) ===
+  const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
+  eyesWrap.append(eyes);
+  function makeEye(){ const eye = h('div',{class:'eye'}), pupil = h('div',{class:'pupil'}), glint = h('div',{class:'glint'}); eye.append(pupil,glint); return {eye,pupil}; }
+  const e1 = makeEye(), e2 = makeEye(); eyes.append(e1.eye, e2.eye);
+  let centers = [];
+  function measure(){
+    centers = [e1.eye, e2.eye].map(el=>{ const r = el.getBoundingClientRect(); return { x:r.left+r.width/2+scrollX, y:r.top+r.height/2+scrollY };});
+  }
+  addEventListener('resize', measure); setTimeout(measure, 50);
+  function moveEyes(x,y){
+    if(centers.length<2) measure();
+    [e1,e2].forEach((E,i)=>{
+      const c = centers[i]; if(!c) return;
+      const dx = x - c.x, dy = y - c.y, ang = Math.atan2(dy,dx), max=10;
+      E.pupil.style.transform = `translate(calc(-50% + ${Math.cos(ang)*max}px), calc(-50% + ${Math.sin(ang)*max}px))`;
+    });
+  }
+  addEventListener('mousemove', (e)=>moveEyes(e.pageX,e.pageY), {passive:true});
+  addEventListener('touchmove', (e)=>{ const t=e.touches[0]; if(t) moveEyes(t.pageX,t.pageY); }, {passive:true});
 
-      function makeEye(){
-        const eye = h('div',{class:'eye'});
-        const pupil = h('div',{class:'pupil'});
-        const glint = h('div',{class:'glint'});
-        eye.append(pupil, glint);
-        return {eye, pupil};
-      }
-      const e1 = makeEye(), e2 = makeEye();
-      eyes.append(e1.eye, e2.eye);
+  // === Cursor trail card ===
+  let trailEnabled = false;
+  const trailBtn = h('button',{class:'btn', onclick:()=>{
+    trailEnabled = !trailEnabled;
+    if(trailEnabled){ enableTrail(); trailBtn.textContent='Disable trail'; }
+    else { disableTrail(); trailBtn.textContent='Enable trail'; }
+  }}, 'Enable trail');
+  const trailCard = Card('Cursor Trail','Shiny sci-fi particles follow your cursor', h('div',{}, trailBtn));
 
-      let centers = [];
-      function measure(){
-        centers = [e1.eye, e2.eye].map(el=>{
-          const r = el.getBoundingClientRect();
-          return { x: r.left + r.width/2 + window.scrollX, y: r.top + r.height/2 + window.scrollY };
-        });
-      }
-      window.addEventListener('resize', measure);
-      setTimeout(measure, 50);
+  // === Random quotes card ===
+  const select = h('select',{},
+    ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k}, k))
+  );
+  const out = h('div',{class:'card', style:'margin-top:10px; padding:12px; font-size:15px; color:"#e5e7eb"'}, 'Click “Generate” to get a line.');
+  const gen = h('button',{class:'btn', onclick:()=>{
+    const cat = select.value;
+    const pool = (cat==='surprise') ? [...QUOTES.jokes, ...QUOTES.scifi, ...QUOTES.fortune, ...QUOTES.philosophy] : QUOTES[cat];
+    out.textContent = choose(pool);
+  }}, 'Generate');
+  const quotesCard = Card('Random Quote','Jokes, sci-fi, fortune, philosophy',
+    h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px; display:flex; gap:8px; align-items:center'}, gen), out)
+  );
 
-      function move(pageX, pageY){
-        if(centers.length<2) measure();
-        [e1, e2].forEach((E, i)=>{
-          const c = centers[i]; if(!c) return;
-          const dx = pageX - c.x, dy = pageY - c.y;
-          const ang = Math.atan2(dy, dx);
-          const max = 10;
-          const px = Math.cos(ang)*max, py = Math.sin(ang)*max;
-          E.pupil.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
-        });
-      }
-      window.addEventListener('mousemove', (e)=> move(e.pageX, e.pageY), {passive:true});
-      window.addEventListener('touchmove', (e)=> { const t = e.touches[0]; if(t) move(t.pageX, t.pageY); }, {passive:true});
+  // === Pet Blob card ===
+  const blob = h('div',{class:'blob'}), eyeL = h('div',{class:'blob-eye'}), eyeR = h('div',{class:'blob-eye'});
+  blob.append(eyeL, eyeR);
+  // color + size controls
+  const colorSel = h('select',{},
+    h('option',{value:'indigo'},'Indigo'),
+    h('option',{value:'pink'},'Pink'),
+    h('option',{value:'green'},'Green'),
+    h('option',{value:'cyan'},'Cyan')
+  );
+  const sizeSel = h('input',{type:'range', min:'120', max:'220', value:'160', oninput:(e)=>{ blob.style.width = blob.style.height = e.target.value+'px'; }});
+  function applyBlobColor(v){
+    const m = {
+      indigo: 'rgba(99,102,241,.6)',
+      pink:   'rgba(236,72,153,.6)',
+      green:  'rgba(34,197,94,.6)',
+      cyan:   'rgba(34,211,238,.6)'
+    }[v] || 'rgba(99,102,241,.6)';
+    blob.style.background = `radial-gradient(circle at 40% 35%, rgba(255,255,255,.5), ${m} 35%, rgba(2,6,23,.9) 70%)`;
+    blob.style.boxShadow = `inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px ${m}`;
+  }
+  applyBlobColor('indigo');
+  colorSel.oninput = (e)=>applyBlobColor(e.target.value);
 
-      const toys = h('div', {class:'grid'});
-      const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
+  // poke & follow
+  blob.addEventListener('click', ()=>{
+    blob.style.animation = 'wiggle 400ms ease-in-out';
+    setTimeout(()=> blob.style.animation = '', 420);
+  });
+  blob.addEventListener('mousemove', (e)=>{
+    const r = blob.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const dx = e.clientX - cx, dy = e.clientY - cy;
+    blob.style.transform = `translate(${dx*0.04}px, ${dy*0.04}px)`;
+  });
+  blob.addEventListener('mouseleave', ()=> blob.style.transform = 'translate(0,0)');
 
-      toys.append(
-        Card('Click-Pulse','Click to charge a pulse',
-          h('div',{},
-            h('button',{class:'btn', onclick:()=>{
-              pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
-              pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400, easing:'ease-out'});
-            }}, 'Charge'),
-            pulse
-          )
-        ),
-        Card('Dice','Random d6 roll', h('button',{class:'btn', onclick:()=> alert('You rolled a ' + (1+Math.floor(Math.random()*6)) + '!')}, 'Roll')),
-        Card('Color Drift','Subtle neon shimmer', h('button',{class:'btn', onclick:()=>{ document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200}); }}, 'Pulse grid'))
-      );
+  const blobControls = h('div',{style:'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px'},
+    h('label',{}, 'Color: ', colorSel),
+    h('label',{}, 'Size: ', sizeSel)
+  );
+  const blobCard = Card('Pet Blob','Poke to wiggle. Customize color & size.',
+    h('div', {style:'display:grid; place-items:center; gap:12px'}, blob, blobControls)
+  );
 
-      return h('div',{}, Card('The Eyes','They’ll follow your cursor…', eyesWrap), h('div',{style:'height:14px'}), h('div',{}, toys));
-    }
+  // === Old mini-toys (kept) ===
+  const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
+  const toys = h('div', {class:'grid'});
+  toys.append(
+    Card('Click-Pulse','Click to charge a pulse',
+      h('div',{}, h('button',{class:'btn', onclick:()=>{
+        pulse.style.boxShadow='0 0 0 0 rgba(99,102,241,0.0)';
+        pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400,easing:'ease-out'});
+      }}, 'Charge'), pulse)
+    ),
+    Card('Dice','Random d6 roll', h('button',{class:'btn', onclick:()=>alert('You rolled a '+(1+Math.floor(Math.random()*6))+'!')}, 'Roll')),
+    Card('Color Drift','Subtle neon shimmer', h('button',{class:'btn', onclick:()=>{ document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200}); }}, 'Pulse grid'))
+  );
 
-    // router
-    function setActive(){ const hash = location.hash || '#home'; document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active')); if(hash.startsWith('#stories')) navStories.classList.add('active'); else if(hash.startsWith('#fun')) navFun.classList.add('active'); else navHome.classList.add('active'); }
-    function route(){
-      if(!location.hash) location.hash = '#home';
-      const hash = location.hash;
-      const app = document.getElementById('app');
-      app.innerHTML = '';
-      if(hash.startsWith('#stories')) app.append(Stories());
-      else if(hash.startsWith('#fun')) app.append(Fun());
-      else app.append(Home());
-      setActiveNav();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  // Assemble page
+  return h('div',{},
+    Card('The Eyes','They’ll follow your cursor…', eyesWrap),
+    h('div',{style:'height:14px'}),
+    trailCard,
+    h('div',{style:'height:14px'}),
+    quotesCard,
+    h('div',{style:'height:14px'}),
+    blobCard,
+    h('div',{style:'height:14px'}),
+    toys
+  );
+}
     window.addEventListener('hashchange', route);
     route();
   </script>
