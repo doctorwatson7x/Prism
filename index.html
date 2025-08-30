@@ -8,7 +8,7 @@
     :root{
       --bg1:#020617; --bg2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
       --ink:#a5b4fc; --indigo:#6366f1; --panel:rgba(255,255,255,0.04);
-      --border:rgba(255,255,255,0.1); --danger:#dc2626; --ok:#10b981;
+      --border:rgba(255,255,255,0.1); --danger:#dc2626;
     }
     *{box-sizing:border-box}
     html,body{margin:0; height:100%; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background: radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed; color:var(--text)}
@@ -46,9 +46,12 @@
     .pulse{height:48px; border:1px solid rgba(99,102,241,.35); border-radius:12px}
     .row-end{display:flex; gap:8px; align-items:center}
     .count{font-size:12px; color:#a5b4fc}
-    /* Toast */
     .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#d1fae5; padding:10px 14px; border-radius:12px; box-shadow:0 6px 30px rgba(16,185,129,0.25); z-index:50}
+    .spin{display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:white; border-radius:50%; animation:rot 0.8s linear infinite; vertical-align:-3px}
+    @keyframes rot{to{transform:rotate(360deg)}}
   </style>
+  <!-- Supabase client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="stars">
   <div class="container">
@@ -76,20 +79,28 @@
 
     <footer>
       <div>© <span id="year"></span> Prism. Forged in the void.</div>
-      <div class="muted">Alien-sleek starter · No backend · Free deploy</div>
+      <div class="muted">Alien-sleek starter · Free deploy</div>
     </footer>
   </div>
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    const STORAGE_KEY='prism_stories_v1';
+    // ====== CONFIG: paste your values here ======
+    const SUPABASE_URL = "https://niynqtpppdzrciozjcvr.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5peW5xdHBwcGR6cmNpb3pqY3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MTAyODcsImV4cCI6MjA3MjA4NjI4N30.lnlXM9lzfdOaCW6UQ5fBZ_SHd8TOVF0KCgpSsTrMbgs";  // from Settings → API
+    // ============================================
+
+    // globals
+    let supabase = null;
+    const STORAGE_KEY='prism_stories_v1';     // still used for local delete reloads
     const LAST_PEN_KEY='prism_last_pen';
     const LAST_POST_AT='prism_last_post_at';
-    const MAX_LEN = 2000;           // story length cap
-    const COOLDOWN_MS = 10_000;     // 10s anti-spam
-    const DUP_WINDOW_MS = 120_000;  // 2 min duplicate window
+    const MAX_LEN = 2000;
+    const COOLDOWN_MS = 10_000;    // 10s
+    const DUP_WINDOW_MS = 120_000; // client-side duplicate window
 
+    // helpers
     function h(tag, attrs={}, ...children){
       const el = document.createElement(tag);
       for(const k in attrs){
@@ -101,16 +112,7 @@
       return el;
     }
     const esc = (s) => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-
-    function toast(msg){
-      const t = h('div',{class:'toast'}, msg);
-      document.body.appendChild(t);
-      setTimeout(()=>{ t.remove(); }, 1600);
-    }
-
-    function loadStories(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY))||[] }catch{ return [] } }
-    function saveStories(items){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }catch{} }
-
+    function toast(msg){ const t = h('div',{class:'toast'}, msg); document.body.appendChild(t); setTimeout(()=>t.remove(),1600); }
     function setActiveNav(){
       const hash = location.hash || '#home';
       document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
@@ -119,32 +121,17 @@
       else document.getElementById('navHome').classList.add('active');
     }
 
-    function Home(){
-      const grid = h('section', {class:'grid'});
-      grid.append(
-        Tile('Stories','#stories','Write and read entries. Saved locally; sorted by pen name & date.', IconDoc() ),
-        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye() )
-      );
-      const card = Card('Experimental website','',
-        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
-      );
-      return h('div', {}, grid, h('div', {style:'height:12px'}), card);
+    // Supabase init
+    function initSupabase(){
+      if(!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("YOUR_SUPABASE")){
+        console.warn("Supabase keys missing—Stories will not load.");
+        return null;
+      }
+      return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
+    supabase = initSupabase();
 
-    function Tile(title, href, desc, icon){
-      const a = h('a', {href, class:'tile'});
-      const row = h('div', {style:'display:flex; gap:16px; align-items:flex-start'});
-      const iconWrap = h('div', {style:'opacity:.85'}); iconWrap.append(icon);
-      const text = h('div', {},
-        h('div', {style:'font-weight:600; font-size:20px'}, title),
-        h('div', {class:'muted', style:'margin-top:6px'}, desc),
-        h('span', {style:'display:inline-block; margin-top:12px; color:#c7d2fe'}, 'Open →')
-      );
-      row.append(iconWrap, text);
-      a.append(row);
-      return a;
-    }
-
+    // UI building blocks
     function Card(title, subtitle, body, actions){
       const head = h('div', {style:'display:flex; justify-content:space-between; gap:12px; align-items:flex-start'});
       const left = h('div',{},
@@ -156,38 +143,68 @@
       card.append(head, h('div',{style:'margin-top:14px'}, body));
       return card;
     }
-
-    function IconDoc(){
-      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
-      s.innerHTML = '<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';
-      return s;
+    function Tile(title, href, desc, icon){
+      const a = h('a', {href, class:'tile'});
+      const row = h('div', {style:'display:flex; gap:16px; align-items:flex-start'});
+      const iconWrap = h('div', {style:'opacity:.85'}); iconWrap.append(icon);
+      const text = h('div', {},
+        h('div', {style:'font-weight:600; font-size:20px'}, title),
+        h('div', {class:'muted', style:'margin-top:6px'}, desc),
+        h('span', {style:'display:inline-block; margin-top:12px; color:#c7d2fe'}, 'Open →')
+      );
+      row.append(iconWrap, text); a.append(row); return a;
     }
-    function IconEye(){
-      const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32});
-      s.innerHTML = '<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';
-      return s;
+    function IconDoc(){ const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32}); s.innerHTML = '<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>'; return s; }
+    function IconEye(){ const s = h('svg',{viewBox:'0 0 24 24', width:32, height:32}); s.innerHTML = '<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>'; return s; }
+
+    function Home(){
+      const grid = h('section', {class:'grid'});
+      grid.append(
+        Tile('Stories','#stories','Write and read entries from everyone (cloud synced).', IconDoc() ),
+        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye() )
+      );
+      const card = Card('Experimental website','',
+        h('p', {class:'muted', html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
+      );
+      return h('div', {}, grid, h('div', {style:'height:12px'}), card);
     }
 
+    // ===== Supabase data funcs =====
+    async function dbFetchStories(){
+      if(!supabase) return { data: [], error: { message: "Missing Supabase config" } };
+      // Order by pen (asc), then created_at (desc)
+      return await supabase
+        .from('stories')
+        .select('id, pen, text, created_at')
+        .order('pen', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(200);
+    }
+    async function dbInsertStory(pen, text){
+      if(!supabase) return { error: { message: "Missing Supabase config" } };
+      return await supabase.from('stories').insert([{ pen, text }]).select();
+    }
+
+    // ========== Stories page ==========
     function Stories(){
-      let items = loadStories();
+      const wrapper = h('div', {});
+      let items = [];
       const lastPen = localStorage.getItem(LAST_PEN_KEY) || '';
 
+      // composer
       const form = h('form', {onsubmit: (e)=>{ e.preventDefault(); add(); }});
       const pen = h('input', {placeholder:'Pen name', maxlength:'40', value:lastPen});
       const text = h('textarea', {placeholder:`Share a thought (max ${MAX_LEN} chars)…`, maxlength:String(MAX_LEN)});
       const count = h('span', {class:'count'}, '0/' + MAX_LEN);
       const postBtn = h('button', {class:'btn', type:'submit', disabled:true}, 'Post');
-      const clearBtn = h('button', {class:'btn btn-danger', type:'button', onclick:()=>{ if(confirm('Clear all local stories?')){ saveStories([]); items=[]; render(); } }}, 'Clear all');
+      const reloadBtn = h('button', {class:'btn', type:'button', onclick:()=>load(true)}, 'Refresh');
 
-      text.addEventListener('input', () => {
-        count.textContent = text.value.length + '/' + MAX_LEN;
-        validate();
-      });
+      text.addEventListener('input', () => { count.textContent = text.value.length + '/' + MAX_LEN; validate(); });
       pen.addEventListener('input', validate);
 
       function cooldownReady(){
         const last = Number(localStorage.getItem(LAST_POST_AT)||0);
-        return Date.now() - last >= COOLDOWN_MS;
+        return Date.now() - last >= 10_000;
       }
       function validate(){
         const ok = pen.value.trim().length>0 && text.value.trim().length>0 && cooldownReady();
@@ -200,91 +217,99 @@
         ),
         h('div', {class:'row-end', style:'justify-content:space-between; margin-top:10px'},
           count,
-          h('div', {class:'row-end'}, postBtn, clearBtn)
+          h('div', {class:'row-end'}, postBtn, reloadBtn)
         )
       );
 
-      function isDuplicate(p, t){
-        const clean = (s)=>s.trim().replace(/\s+/g,' ');
+      // list
+      const listCard = Card('Community feed', 'Cloud posts sorted by pen & date', h('div', {}, 'Loading…'));
+      const listBody = listCard.lastChild; // content container
+
+      // add + duplicate checks
+      function isClientDuplicate(p, t){
+        const clean = s => s.trim().replace(/\s+/g,' ');
         const now = Date.now();
-        return loadStories().some(e =>
+        return items.some(e =>
           e.pen === clean(p) &&
           e.text === clean(t) &&
-          (now - new Date(e.date).getTime()) < DUP_WINDOW_MS
+          (now - new Date(e.created_at).getTime()) < DUP_WINDOW_MS
         );
       }
 
-      function add(){
+      async function add(){
         if(!cooldownReady()){
-          const left = Math.ceil((COOLDOWN_MS - (Date.now()-Number(localStorage.getItem(LAST_POST_AT)||0)))/1000);
+          const left = Math.ceil((10_000 - (Date.now()-Number(localStorage.getItem(LAST_POST_AT)||0)))/1000);
           alert('Easy there, warp drive cooling down… try again in ~' + left + 's.');
           return;
         }
         const p = pen.value.trim(), t = text.value.trim();
         if(!p || !t) return;
+        if(isClientDuplicate(p, t)){ alert('Looks like you just posted that. Not posting a duplicate.'); return; }
 
-        if(isDuplicate(p, t)){
-          alert('Looks like you just posted that. Not posting a duplicate.');
+        postBtn.innerHTML = '<span class="spin"></span> Posting…';
+        postBtn.disabled = true;
+
+        const { data, error } = await dbInsertStory(p, t);
+        if(error){
+          if(String(error.message).includes('duplicate') || String(error.message).includes('unique')){
+            alert('Server says this is a duplicate. Not posting again.');
+          } else {
+            alert('Could not post: ' + error.message);
+          }
+          postBtn.textContent = 'Post'; validate();
           return;
         }
 
-        // Optimistic UI feedback
-        postBtn.textContent = 'Posting…';
-        postBtn.disabled = true;
-
-        const entry = { id: crypto.randomUUID(), pen: p, text: t, date: new Date().toISOString() };
-        localStorage.setItem(LAST_PEN_KEY, entry.pen);
+        localStorage.setItem(LAST_PEN_KEY, p);
         localStorage.setItem(LAST_POST_AT, String(Date.now()));
+        text.value = ''; count.textContent = '0/' + MAX_LEN;
 
-        items = [entry, ...loadStories()];
-        saveStories(items);
-
-        // Reset form + feedback
-        text.value = '';
-        count.textContent = '0/' + MAX_LEN;
-        toast('Posted!');
+        await load(true); // refresh from server
         postBtn.textContent = 'Posted!';
         setTimeout(()=>{ postBtn.textContent = 'Post'; validate(); }, 900);
-
-        render(); // re-render list
       }
 
-      function remove(id){
-        if(!confirm('Delete this entry from this browser?')) return;
-        items = loadStories().filter(x => x.id !== id);
-        saveStories(items);
-        render();
+      async function load(showSpinner){
+        if(showSpinner) listBody.innerHTML = 'Loading…';
+        const { data, error } = await dbFetchStories();
+        if(error){ listBody.innerHTML = 'Could not load: ' + error.message; return; }
+        items = (data || []);
+        renderList();
       }
 
-      const list = h('ul', {class:'list'});
-      const sorted = items.sort((a,b)=>{
-        const penCmp = a.pen.localeCompare(b.pen, undefined, {sensitivity:'base'});
-        if(penCmp!==0) return penCmp;
-        return new Date(b.date) - new Date(a.date);
-      });
-
-      if(sorted.length===0) list.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
-      else for(const it of sorted){
-        const del = h('button', {class:'btn btn-danger', type:'button', onclick:()=>remove(it.id)}, 'Delete');
-        list.append(
-          h('li',{class:'post', style:'margin-top:12px'},
-            h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
-              h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen)),
-              h('time',{class:'muted'}, new Date(it.date).toLocaleString())
-            ),
-            h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text)),
-            h('div',{style:'margin-top:10px; display:flex; justify-content:flex-end'}, del)
-          )
-        );
+      function renderList(){
+        const ul = h('ul', {class:'list'});
+        if(items.length === 0){
+          ul.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
+        } else {
+          // items already sorted by query: pen asc, date desc
+          for(const it of items){
+            ul.append(
+              h('li',{class:'post', style:'margin-top:12px'},
+                h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
+                  h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen)),
+                  h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
+                ),
+                h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text))
+              )
+            );
+          }
+        }
+        listBody.innerHTML = ''; listBody.append(ul);
       }
 
-      return h('div', {},
-        Card('Write a story','Pick a pen name per post; entries sort by name & date', form),
+      // assemble page
+      wrapper.append(
+        Card('Write a story','Shared across devices via Supabase', form),
         h('div',{style:'height:14px'}),
-        Card('Community feed', sorted.length + ' entr' + (sorted.length===1?'y':'ies'), list)
+        listCard
       );
+
+      load(true); // initial fetch
+      return wrapper;
     }
 
+    // ========== Fun page (unchanged visuals) ==========
     function Fun(){
       const eyesWrap = h('div',{class:'eyeShell'});
       const eyes = h('div',{class:'eyes'});
@@ -322,47 +347,30 @@
         });
       }
       window.addEventListener('mousemove', (e)=> move(e.pageX, e.pageY), {passive:true});
-      window.addEventListener('touchmove', (e)=> {
-        const t = e.touches[0]; if(t) move(t.pageX, t.pageY);
-      }, {passive:true});
+      window.addEventListener('touchmove', (e)=> { const t = e.touches[0]; if(t) move(t.pageX, t.pageY); }, {passive:true});
 
       const toys = h('div', {class:'grid'});
       const pulse = h('div',{class:'pulse', id:'pulse-field', style:'margin-top:16px'});
 
       toys.append(
-        Toy('Click-Pulse','Click to charge a pulse','Charge', ()=>{
-          pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
-          pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400, easing:'ease-out'});
-        }),
-        Toy('Dice','Random d6 roll','Roll', ()=> alert('You rolled a ' + (1+Math.floor(Math.random()*6)) + '!')),
-        Toy('Color Drift','Subtle neon shimmer','Pulse grid', ()=>{
-          document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200});
-        }),
-      );
-
-      return h('div',{},
-        Card('The Eyes','They’ll follow your cursor…', eyesWrap),
-        h('div',{style:'height:14px'}),
-        Card('Mini-toys','Room for future games', h('div',{}, toys, pulse))
-      );
-    }
-
-    function Toy(title, desc, text, onClick){
-      const card = h('div',{class:'card'});
-      card.append(
-        h('div',{},
-          h('div',{style:'font-weight:600'}, title),
-          h('div',{class:'muted', style:'margin-top:6px'}, desc)
+        Card('Click-Pulse','Click to charge a pulse',
+          h('div',{},
+            h('button',{class:'btn', onclick:()=>{
+              pulse.style.boxShadow = '0 0 0 0 rgba(99,102,241,0.0)';
+              pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400, easing:'ease-out'});
+            }}, 'Charge'),
+            pulse
+          )
         ),
-        h('div', {style:'margin-top:10px'},
-          h('button',{class:'btn', onclick:onClick}, text)
-        )
+        Card('Dice','Random d6 roll', h('button',{class:'btn', onclick:()=> alert('You rolled a ' + (1+Math.floor(Math.random()*6)) + '!')}, 'Roll')),
+        Card('Color Drift','Subtle neon shimmer', h('button',{class:'btn', onclick:()=>{ document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200}); }}, 'Pulse grid'))
       );
-      return card;
+
+      return h('div',{}, Card('The Eyes','They’ll follow your cursor…', eyesWrap), h('div',{style:'height:14px'}), h('div',{}, toys));
     }
 
-    function render(){ route(); } // used by Stories actions
-
+    // router
+    function setActive(){ const hash = location.hash || '#home'; document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active')); if(hash.startsWith('#stories')) navStories.classList.add('active'); else if(hash.startsWith('#fun')) navFun.classList.add('active'); else navHome.classList.add('active'); }
     function route(){
       if(!location.hash) location.hash = '#home';
       const hash = location.hash;
