@@ -299,7 +299,7 @@
 
       // Feed
       const feedCard = Card(COPY.feed.title, COPY.feed.subtitle, h('div',{},'Loading…'));
-      const listBody = feedCard.lastChild; let items=[]; let viewingPen=null;
+      const listBody = feedCard.lastChild;
       function isDup(p,t){ const clean=s=>s.trim().replace(/\s+/g,' '); const now=Date.now(); return items.some(e=> e.pen.trim()===clean(p) && e.text.trim()===clean(t) && (now-new Date(e.created_at).getTime())<120000); }
 
       async function add(){
