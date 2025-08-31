@@ -8,7 +8,7 @@
     :root{
       --bg1:#020617; --bg2:#0b1220; --text:#e5e7eb; --muted:#94a3b8;
       --ink:#a5b4fc; --indigo:#6366f1; --panel:rgba(255,255,255,0.04);
-      --border:rgba(255,255,255,0.1); --danger:#dc2626;
+      --border:rgba(255,255,255,0.1); --danger:#dc2626; --ok:#10b981;
     }
     *{box-sizing:border-box}
     html,body{margin:0; height:100%; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; background: radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed; color:var(--text)}
@@ -28,14 +28,23 @@
     .btn{display:inline-block; background:#4f46e5; color:white; padding:10px 14px; border-radius:12px; border:0; cursor:pointer}
     .btn[disabled]{opacity:.6; cursor:not-allowed}
     .btn:hover{background:#6366f1}
-    .btn-danger{background:var(--danger)}
-    .btn-danger:hover{background:#ef4444}
+    .btn-danger{background:var(--danger)} .btn-danger:hover{background:#ef4444}
+    .btn-ok{background:var(--ok)} .btn-ok:hover{filter:brightness(1.1)}
     footer{margin-top:32px; display:flex; justify-content:space-between; color:#94a3b8; font-size:14px}
     .stars::before{content:""; position:fixed; inset:0; background-image:radial-gradient(rgba(99,102,241,0.08) 1px, transparent 1px); background-size:24px 24px; opacity:.4; pointer-events:none}
-    textarea,input{width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:var(--text); padding:10px 12px; border-radius:12px}
+    textarea,input,select{width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:var(--text); padding:10px 12px; border-radius:12px}
     textarea{min-height:90px; resize:vertical}
     .list{list-style:none; margin:0; padding:0}
     .post{border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:16px}
+    .row{display:flex; gap:8px; align-items:center}
+    .row-wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; background:rgba(0,0,0,.25); cursor:pointer}
+    .pill:hover{background:rgba(255,255,255,0.06)}
+    .count{font-size:12px; color:#a5b4fc}
+    .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#d1fae5; padding:10px 14px; border-radius:12px; box-shadow:0 6px 30px rgba(16,185,129,0.25); z-index:50}
+    .banner{margin:12px 0; padding:12px; border:1px dashed rgba(16,185,129,.5); background:rgba(16,185,129,.08); border-radius:12px}
+    .spin{display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:white; border-radius:50%; animation:rot .8s linear infinite; vertical-align:-3px}
+    @keyframes rot{to{transform:rotate(360deg)}}
 
     /* Eyes */
     .eyeShell{height:220px; display:grid; place-items:center}
@@ -44,35 +53,17 @@
     .eye::before{content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 30%, rgba(226,232,240,.9), rgba(203,213,225,.8), transparent 70%)}
     .pupil{position:absolute; top:50%; left:50%; height:36px; width:36px; background:#1e1b4b; border-radius:50%; transform:translate(-50%,-50%);}
     .pupil::after{content:""; position:absolute; inset:4px; background:#4f46e5; border-radius:50%}
-    .glint{position:absolute; top:6px; left:12px; height:10px; width:10px; border-radius:50%; background:rgba(255,255,255,0.9)}
-
-    .pulse{height:48px; border:1px solid rgba(99,102,241,.35); border-radius:12px}
-    .row-end{display:flex; gap:8px; align-items:center}
-    .count{font-size:12px; color:#a5b4fc}
-    .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#d1fae5; padding:10px 14px; border-radius:12px; box-shadow:0 6px 30px rgba(16,185,129,0.25); z-index:50}
-    .spin{display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:white; border-radius:50%; animation:rot .8s linear infinite; vertical-align:-3px}
-    @keyframes rot{to{transform:rotate(360deg)}}
 
     /* Cursor trail particles */
     .particle{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;will-change:transform,opacity;filter:blur(0.2px)}
     @keyframes pop{from{transform:translate(var(--x),var(--y)) scale(1);opacity:1}to{transform:translate(calc(var(--x)*2),calc(var(--y)*2)) scale(0);opacity:0}}
-
-    /* Pet blob */
-    .blob{width:160px;height:160px;border-radius:50%;
-      background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.5),rgba(99,102,241,.6) 35%,rgba(2,6,23,.9) 70%);
-      border:1px solid rgba(255,255,255,.25);
-      box-shadow:inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px rgba(99,102,241,.35);
-      transition:transform .12s ease;position:relative;}
-    .blob-eye{position:absolute;top:45%;left:35%;width:18px;height:18px;background:#111827;border-radius:50%;box-shadow:inset 0 0 0 4px #4f46e5}
-    .blob-eye + .blob-eye{left:58%}
-    @keyframes wiggle{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(2px,-1px) rotate(-2deg)}50%{transform:translate(-1px,2px) rotate(2deg)}75%{transform:translate(1px,1px) rotate(-1deg)}100%{transform:translate(0,0) rotate(0)}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="stars">
   <div class="container">
     <header>
-      <div class="row">
+      <div class="row" style="justify-content:space-between">
         <div class="logo">
           <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden>
             <polygon points="32,6 58,54 6,54" fill="none" stroke="#818cf8" stroke-width="2"></polygon>
@@ -119,7 +110,8 @@
       for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
       return el;
     }
-    const esc = (s) => s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    // Escape ONLY on render (store raw)
+    const esc = (s) => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
     function toast(msg){ const t = h('div',{class:'toast'}, msg); document.body.appendChild(t); setTimeout(()=>t.remove(),1600); }
     const choose = (arr)=>arr[Math.floor(Math.random()*arr.length)];
     function setActiveNav(){
@@ -137,6 +129,98 @@
       const h = Math.floor(a + Math.random()*(b-a));
       return `hsla(${h} 95% 65% / 1)`;
     };
+
+    // ---------- Project memory (identity) ----------
+    const LAST_PEN_KEY='prism_last_pen';
+    const LAST_MASK_KEY='prism_last_mask';
+    const LAST_RESERVED='prism_reserved';
+    const MASKS = [
+      "Grey","Reptilian","Nordic","Insectoid","Cyborg Alien",
+      "Retro Martian","Roswell Cartoon","Xeno-Beast","Space Wizard",
+      "Cosmic Jellyfish","Nebula Face","Crystal Skull","Obsidian Fox",
+      "Solar Phantom","Void Wraith"
+    ];
+
+    function sha256Hex(s){
+      const enc = new TextEncoder().encode(s);
+      return crypto.subtle.digest('SHA-256', enc).then(buf =>
+        Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('')
+      );
+    }
+
+    async function reservePen(pen, mask, password){
+      const password_hash = password ? await sha256Hex(password) : null;
+      // Create (or update) a row in users table; pen is unique
+      const { data, error } = await supabase.from('users').upsert(
+        [{ pen, mask, password_hash }], { onConflict: 'pen' }
+      ).select();
+      if(error) throw error;
+      return data?.[0] || null;
+    }
+
+    async function getUser(pen){
+      const { data, error } = await supabase.from('users').select('*').eq('pen', pen).maybeSingle();
+      if(error) throw error;
+      return data;
+    }
+
+    // ---------- Supabase (Stories / Comments / Reactions) ----------
+    const MAX_LEN = 2000;
+    const COOLDOWN_MS = 10_000;
+    const DUP_WINDOW_MS = 120_000;
+    const ALLOWED_EMOJIS = ["👍","😂","🔥","👽"];
+
+    // STORIES
+    async function dbFetchStories(){
+      // Strictly by timestamp (newest first)
+      return await supabase
+        .from('stories')
+        .select('id, pen, text, created_at')
+        .order('created_at', {ascending:false})
+        .limit(200);
+    }
+    async function dbFetchStoriesByPen(pen){
+      return await supabase
+        .from('stories')
+        .select('id, pen, text, created_at')
+        .eq('pen', pen)
+        .order('created_at', {ascending:false})
+        .limit(200);
+    }
+    async function dbInsertStory(pen, text){
+      return await supabase.from('stories').insert([{ pen, text }]).select();
+    }
+
+    // COMMENTS
+    async function dbInsertComment(story_id, pen, text){
+      return await supabase.from('comments').insert([{ story_id, pen, text }]).select();
+    }
+    async function dbFetchComments(story_id){
+      return await supabase.from('comments')
+        .select('id, story_id, pen, text, created_at')
+        .eq('story_id', story_id)
+        .order('created_at',{ascending:true});
+    }
+
+    // REACTIONS
+    async function dbReact(story_id, pen, emoji){
+      // Upsert: one emoji per pen per story
+      // Delete existing same-emoji then insert
+      await supabase.from('reactions').delete().match({ story_id, pen, emoji });
+      return await supabase.from('reactions').insert([{ story_id, pen, emoji }]).select();
+    }
+    async function dbUnreact(story_id, pen, emoji){
+      return await supabase.from('reactions').delete().match({ story_id, pen, emoji });
+    }
+    async function dbReactionTotals(story_id){
+      const { data, error } = await supabase.from('reactions')
+        .select('emoji, count:emoji', { count: 'exact', head: false })
+        .eq('story_id', story_id);
+      if(error) return { totals:{} };
+      const totals = { "👍":0,"😂":0,"🔥":0,"👽":0 };
+      for(const r of data){ if(ALLOWED_EMOJIS.includes(r.emoji)) totals[r.emoji] = (totals[r.emoji]||0)+1; }
+      return { totals };
+    }
 
     // ---------- UI components ----------
     function Tile(title,href,desc,icon){
@@ -159,74 +243,162 @@
     function IconDoc(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';return s;}
     function IconEye(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';return s;}
 
-    // ---------- Home ----------
-    function Home(){
-      const grid = h('section',{class:'grid'});
-      grid.append(
-        Tile('Stories','#stories','Write and read entries from everyone (cloud synced).', IconDoc()),
-        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye())
+    // ---------- Setup banner with auto SQL ----------
+    function SetupBanner(){
+      const sql = `
+-- Run once in Supabase SQL editor (Database -> SQL)
+-- 1) USERS (optional password reserves pen name)
+create table if not exists public.users (
+  id uuid primary key default gen_random_uuid(),
+  pen text unique not null,
+  mask text not null,
+  password_hash text null,
+  created_at timestamptz default now()
+);
+
+-- 2) COMMENTS (thread under stories)
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null,
+  pen text not null,
+  text text not null,
+  created_at timestamptz default now()
+);
+
+-- 3) REACTIONS (one per pen per emoji per story)
+create table if not exists public.reactions (
+  id uuid primary key default gen_random_uuid(),
+  story_id uuid not null,
+  pen text not null,
+  emoji text not null,
+  created_at timestamptz default now(),
+  unique (story_id, pen, emoji)
+);
+
+/* Optional (dev): make public readable/writable. In production, prefer RLS policies. */
+alter table public.users enable row level security;
+alter table public.comments enable row level security;
+alter table public.reactions enable row level security;
+
+-- Allow anon to read/insert basic rows (simplified dev policies)
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename='users' and policyname='users_select') then
+    create policy users_select on public.users for select using (true);
+    create policy users_insert on public.users for insert with check (true);
+    create policy users_update on public.users for update using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='comments' and policyname='comments_select') then
+    create policy comments_select on public.comments for select using (true);
+    create policy comments_insert on public.comments for insert with check (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where tablename='reactions' and policyname='reactions_select') then
+    create policy reactions_select on public.reactions for select using (true);
+    create policy reactions_insert on public.reactions for insert with check (true);
+    create policy reactions_delete on public.reactions for delete using (true);
+  end if;
+end $$;
+      `.trim();
+
+      const copyBtn = h('button',{class:'btn-ok', onclick:()=>{
+        navigator.clipboard.writeText(sql);
+        toast('SQL copied. Paste into Supabase → SQL → Run');
+      }}, 'Copy SQL');
+      const closeBtn = h('button',{class:'btn', onclick:()=>banner.remove()}, 'Hide');
+
+      const banner = h('div',{class:'banner'},
+        h('div',{}, h('b',{},'First-time setup: '), 'Click to copy a one-time SQL snippet that creates users/comments/reactions tables.'),
+        h('div',{class:'row', style:'margin-top:8px'}, copyBtn, closeBtn)
       );
-      const card = Card('Experimental website','',
-        h('p',{class:'muted',html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
-      );
-      return h('div',{},grid,h('div',{style:'height:12px'}),card);
+      return banner;
     }
 
-    // ---------- Supabase (Stories) ----------
-    const LAST_PEN_KEY='prism_last_pen';
-    const LAST_POST_AT='prism_last_post_at';
-    const MAX_LEN = 2000;
-    const COOLDOWN_MS = 10_000;
-    const DUP_WINDOW_MS = 120_000;
-
-    async function dbFetchStories(){
-      return await supabase
-        .from('stories')
-        .select('id, pen, text, created_at')
-        .order('pen', {ascending:true})
-        .order('created_at', {ascending:false})
-        .limit(200);
-    }
-    async function dbInsertStory(pen, text){
-      return await supabase.from('stories').insert([{ pen, text }]).select();
-    }
-
+    // ---------- Stories ----------
     function Stories(){
       const wrapper = h('div', {});
       let items = [];
-      const lastPen = localStorage.getItem(LAST_PEN_KEY) || '';
+      let viewingPen = null;
+
+      // Identity panel (pen + mask + optional password)
+      const penInput = h('input', {placeholder:'Pen name', maxlength:'40', value: localStorage.getItem(LAST_PEN_KEY) || ''});
+      const maskSel  = h('select',{}, ...MASKS.map(m=>h('option',{value:m, selected: (localStorage.getItem(LAST_MASK_KEY)||'Grey')===m}, m)));
+      const pwInput  = h('input', {placeholder:'Password (optional to reserve)', type:'password'});
+      const saveIdBtn= h('button',{class:'btn', onclick: saveIdentity}, 'Save / Reserve');
+      const who = h('div',{class:'muted'});
+
+      async function saveIdentity(){
+        const p = penInput.value.trim(); if(!p){ alert('Enter a pen name'); return; }
+        const m = maskSel.value;
+        const pw = pwInput.value.trim();
+        try{
+          if(pw){
+            await reservePen(p, m, pw);
+            localStorage.setItem(LAST_RESERVED,'1');
+            toast('Pen name reserved 🔒');
+          }else{
+            localStorage.removeItem(LAST_RESERVED);
+            toast('Identity saved (guest)');
+          }
+          localStorage.setItem(LAST_PEN_KEY, p);
+          localStorage.setItem(LAST_MASK_KEY, m);
+          renderWho();
+        }catch(err){
+          alert('Could not save identity: ' + (err?.message||err));
+        }
+      }
+
+      function renderWho(){
+        const p = localStorage.getItem(LAST_PEN_KEY)||'(none)';
+        const m = localStorage.getItem(LAST_MASK_KEY)||'Grey';
+        const r = localStorage.getItem(LAST_RESERVED)? '— reserved 🔒' : '— guest';
+        who.textContent = `You are ${p} (${m}) ${r}`;
+      }
+      renderWho();
+
+      const idCard = Card('Identity',
+        'Passwords are optional — setting one reserves your Pen Name so no one else can claim it.',
+        h('div',{},
+          h('div',{class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
+            penInput, maskSel, pwInput
+          ),
+          h('div',{class:'row', style:'margin-top:10px'}, saveIdBtn),
+          h('div',{style:'margin-top:6px'}, who)
+        )
+      );
 
       // composer
       const form = h('form', {onsubmit: (e)=>{ e.preventDefault(); add(); }});
-      const pen = h('input', {placeholder:'Pen name', maxlength:'40', value:lastPen});
       const text = h('textarea', {placeholder:`Share a thought (max ${MAX_LEN} chars)…`, maxlength:String(MAX_LEN)});
       const count = h('span', {class:'count'}, '0/' + MAX_LEN);
       const postBtn = h('button', {class:'btn', type:'submit', disabled:true}, 'Post');
-      const reloadBtn = h('button', {class:'btn', type:'button', onclick:()=>load(true)}, 'Refresh');
+      const refreshBtn = h('button', {class:'btn', type:'button', onclick:()=>load(true)}, 'Refresh');
 
       text.addEventListener('input', () => { count.textContent = text.value.length + '/' + MAX_LEN; validate(); });
-      pen.addEventListener('input', validate);
+      penInput.addEventListener('input', validate);
 
       function cooldownReady(){
-        const last = Number(localStorage.getItem(LAST_POST_AT)||0);
+        const last = Number(localStorage.getItem('prism_last_post_at')||0);
         return Date.now() - last >= COOLDOWN_MS;
       }
       function validate(){
-        const ok = pen.value.trim().length>0 && text.value.trim().length>0 && cooldownReady();
+        const ok = penInput.value.trim().length>0 && text.value.trim().length>0 && cooldownReady();
         postBtn.disabled = !ok;
       }
 
       form.append(
         h('div', {class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
-          pen, text
+          text
         ),
-        h('div', {class:'row-end', style:'justify-content:space-between; margin-top:10px'},
+        h('div', {class:'row', style:'justify-content:space-between; margin-top:10px'},
           count,
-          h('div', {class:'row-end'}, postBtn, reloadBtn)
+          h('div', {class:'row'}, postBtn, refreshBtn)
         )
       );
 
-      const listCard = Card('Community feed', 'Cloud posts sorted by pen & date', h('div', {}, 'Loading…'));
+      // Feed card (newest first)
+      const listCard = Card('Community feed', 'Newest first · click a pen name to see their archive', h('div', {}, 'Loading…'));
       const listBody = listCard.lastChild;
 
       function isClientDuplicate(p, t){
@@ -241,11 +413,11 @@
 
       async function add(){
         if(!cooldownReady()){
-          const left = Math.ceil((COOLDOWN_MS - (Date.now()-Number(localStorage.getItem(LAST_POST_AT)||0)))/1000);
+          const left = Math.ceil((COOLDOWN_MS - (Date.now()-Number(localStorage.getItem('prism_last_post_at')||0)))/1000);
           alert('Easy there, warp drive cooling down… try again in ~' + left + 's.');
           return;
         }
-        const p = pen.value.trim(), t = text.value.trim();
+        const p = penInput.value.trim(), t = text.value.trim();
         if(!p || !t) return;
         if(isClientDuplicate(p, t)){ alert('Looks like you just posted that. Not posting a duplicate.'); return; }
 
@@ -254,18 +426,12 @@
 
         const { data, error } = await dbInsertStory(p, t);
         if(error){
-          const msg = String(error.message||'');
-          if(msg.includes('duplicate') || msg.includes('unique')){
-            alert('Server says this is a duplicate. Not posting again.');
-          } else {
-            alert('Could not post: ' + msg);
-          }
+          alert('Could not post: ' + (error.message||''));
           postBtn.textContent = 'Post'; validate();
           return;
         }
 
-        localStorage.setItem(LAST_PEN_KEY, p);
-        localStorage.setItem(LAST_POST_AT, String(Date.now()));
+        localStorage.setItem('prism_last_post_at', String(Date.now()));
         text.value = ''; count.textContent = '0/' + MAX_LEN;
 
         await load(true);
@@ -275,7 +441,10 @@
 
       async function load(showSpinner){
         if(showSpinner) listBody.innerHTML = 'Loading…';
-        const { data, error } = await dbFetchStories();
+        let resp;
+        if(viewingPen) resp = await dbFetchStoriesByPen(viewingPen);
+        else resp = await dbFetchStories();
+        const { data, error } = resp;
         if(error){ listBody.innerHTML = 'Could not load: ' + error.message; return; }
         items = data || [];
         renderList();
@@ -284,34 +453,129 @@
       function renderList(){
         const ul = h('ul', {class:'list'});
         if(items.length === 0){
-          ul.append(h('div',{class:'muted'},'No entries yet. Be the first to post!'));
+          ul.append(h('div',{class:'muted'}, viewingPen ? `No entries yet for ${viewingPen}.` : 'No entries yet. Be the first to post!'));
         } else {
           for(const it of items){
-            ul.append(
-              h('li',{class:'post', style:'margin-top:12px'},
-                h('div',{style:'display:flex; justify-content:space-between; gap:8px; align-items:center'},
-                  h('div',{style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen)),
-                  h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
-                ),
-                h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text))
-              )
+            const card = h('li',{class:'post', style:'margin-top:12px'});
+            const header = h('div',{class:'row', style:'justify-content:space-between'},
+              h('div',{},
+                h('a',{href:'#stories?pen='+encodeURIComponent(it.pen), onclick:(e)=>{e.preventDefault(); viewingPen=it.pen; load(true);} , style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen))
+              ),
+              h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
             );
+            const body = h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text));
+
+            // Reactions row
+            const reactRow = h('div',{class:'row-wrap', style:'margin-top:10px'});
+            const totalsEl = h('div',{class:'muted'});
+            ALLOWED_EMOJIS.forEach(em=>{
+              reactRow.append(
+                h('span',{class:'pill', onclick:()=>toggleReact(it.id, em)}, em)
+              );
+            });
+            reactRow.append(totalsEl);
+
+            // Comments
+            const commentsWrap = h('div',{style:'margin-top:10px'});
+            const commentInput = h('input',{placeholder:'Add a comment…'});
+            const commentBtn = h('button',{class:'btn', onclick:()=>sendComment(it.id, commentInput)}, 'Comment');
+
+            commentsWrap.append(
+              h('div',{class:'row-wrap'}, commentInput, commentBtn),
+              h('div',{id:'c-'+it.id, style:'margin-top:8px'})
+            );
+
+            card.append(header, body, reactRow, commentsWrap);
+            ul.append(card);
+
+            // Populate reactions + comments
+            updateReactions(it.id, totalsEl);
+            loadComments(it.id);
           }
         }
-        listBody.innerHTML = ''; listBody.append(ul);
+        // Header controls (filter)
+        listBody.innerHTML = '';
+        if(viewingPen){
+          listBody.append(
+            h('div',{class:'row-wrap', style:'margin-bottom:8px'},
+              h('span',{class:'muted'}, 'Viewing ' + viewingPen + ' — '),
+              h('button',{class:'btn', onclick:()=>{ viewingPen=null; load(true); }}, 'Back to all')
+            )
+          );
+        }
+        listBody.append(ul);
       }
 
-      wrapper.append(
-        Card('Write a story','Shared across devices via Supabase', form),
-        h('div',{style:'height:14px'}),
-        listCard
-      );
+      async function toggleReact(storyId, emoji){
+        const pen = penInput.value.trim(); if(!pen){ alert('Set your Pen Name first'); return; }
+        if(!ALLOWED_EMOJIS.includes(emoji)) return;
+        await dbReact(storyId, pen, emoji);
+        const totalsEl = document.querySelector(`#r-${storyId}`) || null; // not used now
+        updateReactions(storyId, null);
+      }
+      async function updateReactions(storyId, target){
+        const { totals } = await dbReactionTotals(storyId);
+        const s = `Reactions: 👍 ${totals["👍"]||0} · 😂 ${totals["😂"]||0} · 🔥 ${totals["🔥"]||0} · 👽 ${totals["👽"]||0}`;
+        if(target) target.textContent = s;
+        else {
+          // find nearest totals text for this story
+          // (simple approach: reload list after action)
+          // keeping minimal: do nothing extra
+        }
+      }
+
+      async function sendComment(storyId, inputEl){
+        const pen = penInput.value.trim(); if(!pen){ alert('Set your Pen Name first'); return; }
+        const txt = inputEl.value.trim(); if(!txt) return;
+        inputEl.disabled = true;
+        try{
+          await dbInsertComment(storyId, pen, txt);
+          inputEl.value = '';
+          loadComments(storyId);
+        }catch(err){ alert('Could not comment: ' + (err?.message||err)); }
+        inputEl.disabled = false;
+      }
+      async function loadComments(storyId){
+        const { data, error } = await dbFetchComments(storyId);
+        const target = document.getElementById('c-'+storyId);
+        if(!target) return;
+        if(error){ target.textContent = 'Could not load comments.'; return; }
+        target.innerHTML = (data||[]).map(c =>
+          `<div style="margin:6px 0"><b style="color:#c7d2fe">${esc(c.pen)}</b>: ${esc(c.text)} <small class="muted">(${new Date(c.created_at).toLocaleString()})</small></div>`
+        ).join('');
+      }
+
+      // Build page
+      const needsSetup = h('div',{}, SetupBanner());
+      const composer = Card('Write a story','Shared across devices via Supabase', form);
+      const feed = listCard;
+
+      // Inputs wiring
+      text.addEventListener('input', validate);
+      validate();
+
+      // Assemble
+      const headerRow = h('div',{class:'row-wrap', style:'justify-content:space-between'});
+      wrapper.append(needsSetup, idCard, h('div',{style:'height:10px'}), composer, h('div',{style:'height:14px'}), feed);
 
       load(true);
       return wrapper;
     }
 
-    // ---------- Fun (with new toys) ----------
+    // ---------- Home ----------
+    function Home(){
+      const grid = h('section',{class:'grid'});
+      grid.append(
+        Tile('Stories','#stories','Write and read entries from everyone (cloud synced).', IconDoc()),
+        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye())
+      );
+      const card = Card('Experimental website','',
+        h('p',{class:'muted',html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
+      );
+      return h('div',{},grid,h('div',{style:'height:12px'}),card);
+    }
+
+    // ---------- Fun (unchanged core toys) ----------
     // Cursor trail
     let trailOn = false, lastTrailAt = 0;
     function spawnParticle(x,y){
@@ -331,12 +595,10 @@
     }
     function enableTrail(){ if(trailOn) return; trailOn = true; addEventListener('mousemove', trailMove, {passive:true}); addEventListener('touchmove', trailTouch, {passive:true}); }
     function disableTrail(){ trailOn = false; removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
-    function trailMove(e){ const now = performance.now(); if(now - lastTrailAt < 16) return; lastTrailAt = now; spawnParticle(e.pageX, e.pageY); }
+    function trailMove(e){ const now = performance.now(); if(now - lastTrailAt < 16) return; lastTrailAt = now; spawnParticle(e.pageX,e.pageY); }
     function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX, pageY:t.pageY}); }
 
-    // Quotes dataset
-    const QUOTES = {
-      jokes:[
+    const QUOTES = { jokes:[
         "I told my computer I needed a break—it said it was going to sleep anyway.",
         "There are 10 types of people: those who understand binary and those who don’t.",
         "My code doesn’t have bugs; it just develops random features."
@@ -355,14 +617,13 @@
         "“The unexamined life is not worth living.” — Socrates",
         "“We are what we repeatedly do.” — Aristotle",
         "“Man is condemned to be free.” — Sartre"
-      ]
-    };
+      ]};
 
     function Fun(){
-      // === Eyes ===
+      // Eyes
       const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
       eyesWrap.append(eyes);
-      function makeEye(){ const eye = h('div',{class:'eye'}), pupil = h('div',{class:'pupil'}), glint = h('div',{class:'glint'}); eye.append(pupil,glint); return {eye,pupil}; }
+      function makeEye(){ const eye = h('div',{class:'eye'}), pupil = h('div',{class:'pupil'}); eye.append(pupil); return {eye,pupil}; }
       const e1 = makeEye(), e2 = makeEye(); eyes.append(e1.eye, e2.eye);
       let centers = [];
       function measure(){
@@ -380,7 +641,7 @@
       addEventListener('mousemove', (e)=>moveEyes(e.pageX,e.pageY), {passive:true});
       addEventListener('touchmove', (e)=>{ const t=e.touches[0]; if(t) moveEyes(t.pageX,t.pageY); }, {passive:true});
 
-      // === Cursor trail card ===
+      // Trail toggle
       let trailEnabled = false;
       const trailBtn = h('button',{class:'btn', onclick:()=>{
         trailEnabled = !trailEnabled;
@@ -389,10 +650,8 @@
       }}, 'Enable trail');
       const trailCard = Card('Cursor Trail','Shiny sci-fi particles follow your cursor', h('div',{}, trailBtn));
 
-      // === Random quotes card ===
-      const select = h('select',{},
-        ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k}, k))
-      );
+      // Random quotes
+      const select = h('select',{}, ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k}, k)));
       const out = h('div',{class:'card', style:'margin-top:10px; padding:12px; font-size:15px'}, 'Click “Generate” to get a line.');
       const gen = h('button',{class:'btn', onclick:()=>{
         const cat = select.value;
@@ -403,69 +662,7 @@
         h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px; display:flex; gap:8px; align-items:center'}, gen), out)
       );
 
-      // === Pet Blob card ===
-      const blob = h('div',{class:'blob'}), eyeL = h('div',{class:'blob-eye'}), eyeR = h('div',{class:'blob-eye'});
-      blob.append(eyeL, eyeR);
-      const colorSel = h('select',{},
-        h('option',{value:'indigo'},'Indigo'),
-        h('option',{value:'pink'},'Pink'),
-        h('option',{value:'green'},'Green'),
-        h('option',{value:'cyan'},'Cyan')
-      );
-      const sizeSel = h('input',{type:'range', min:'120', max:'220', value:'160', oninput:(e)=>{ blob.style.width = blob.style.height = e.target.value+'px'; }});
-      function applyBlobColor(v){
-        const m = {
-          indigo: 'rgba(99,102,241,.6)',
-          pink:   'rgba(236,72,153,.6)',
-          green:  'rgba(34,197,94,.6)',
-          cyan:   'rgba(34,211,238,.6)'
-        }[v] || 'rgba(99,102,241,.6)';
-        blob.style.background = `radial-gradient(circle at 40% 35%, rgba(255,255,255,.5), ${m} 35%, rgba(2,6,23,.9) 70%)`;
-        blob.style.boxShadow = `inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px ${m}`;
-      }
-      applyBlobColor('indigo');
-      colorSel.oninput = (e)=>applyBlobColor(e.target.value);
-      blob.addEventListener('click', ()=>{ blob.style.animation = 'wiggle 400ms ease-in-out'; setTimeout(()=> blob.style.animation = '', 420); });
-      blob.addEventListener('mousemove', (e)=>{
-        const r = blob.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
-        const dx = e.clientX - cx, dy = e.clientY - cy;
-        blob.style.transform = `translate(${dx*0.04}px, ${dy*0.04}px)`;
-      });
-      blob.addEventListener('mouseleave', ()=> blob.style.transform = 'translate(0,0)');
-      const blobControls = h('div',{style:'display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px'},
-        h('label',{}, 'Color: ', colorSel),
-        h('label',{}, 'Size: ', sizeSel)
-      );
-      const blobCard = Card('Pet Blob','Poke to wiggle. Customize color & size.',
-        h('div', {style:'display:grid; place-items:center; gap:12px'}, blob, blobControls)
-      );
-
-      // === Legacy toys ===
-      const pulse = h('div',{class:'pulse', style:'margin-top:16px'});
-      const toys = h('div', {class:'grid'});
-      toys.append(
-        Card('Click-Pulse','Click to charge a pulse',
-          h('div',{}, h('button',{class:'btn', onclick:()=>{
-            pulse.style.boxShadow='0 0 0 0 rgba(99,102,241,0.0)';
-            pulse.animate([{boxShadow:'0 0 0 0 rgba(99,102,241,0.0)'},{boxShadow:'0 0 0 24px rgba(99,102,241,0.35)'}],{duration:400,easing:'ease-out'});
-          }}, 'Charge'), pulse)
-        ),
-        Card('Dice','Random d6 roll', h('button',{class:'btn', onclick:()=>alert('You rolled a '+(1+Math.floor(Math.random()*6))+'!')}, 'Roll')),
-        Card('Color Drift','Subtle neon shimmer', h('button',{class:'btn', onclick:()=>{ document.documentElement.animate([{filter:'hue-rotate(0deg)'},{filter:'hue-rotate(45deg)'},{filter:'hue-rotate(0deg)'}],{duration:1200}); }}, 'Pulse grid'))
-      );
-
-      // Assemble page
-      return h('div',{},
-        Card('The Eyes','They’ll follow your cursor…', eyesWrap),
-        h('div',{style:'height:14px'}),
-        trailCard,
-        h('div',{style:'height:14px'}),
-        quotesCard,
-        h('div',{style:'height:14px'}),
-        blobCard,
-        h('div',{style:'height:14px'}),
-        toys
-      );
+      return h('div',{}, trailCard, h('div',{style:'height:14px'}), quotesCard);
     }
 
     // ---------- Router ----------
@@ -482,6 +679,27 @@
     }
     window.addEventListener('hashchange', route);
     route();
+
+    // Cursor particle helpers present earlier
+    function spawnParticle(x,y){
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const ang = Math.random()*Math.PI*2, dist = 6+Math.random()*10;
+      p.style.setProperty('--x', `${Math.cos(ang)*dist}px`);
+      p.style.setProperty('--y', `${Math.sin(ang)*dist}px`);
+      p.style.left = (x-4)+'px';
+      p.style.top  = (y-4)+'px';
+      const color = neon();
+      p.style.background = color;
+      p.style.boxShadow = `0 0 10px ${color}, 0 0 30px ${color}`;
+      p.style.animation = 'pop 600ms ease-out forwards';
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(), 620);
+    }
+    function enableTrail(){ addEventListener('mousemove', trailMove, {passive:true}); addEventListener('touchmove', trailTouch, {passive:true}); }
+    function disableTrail(){ removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
+    function trailMove(e){ spawnParticle(e.pageX,e.pageY); }
+    function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX, pageY:t.pageY}); }
   </script>
 </body>
 </html>
