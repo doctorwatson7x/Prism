@@ -42,9 +42,6 @@
     .pill:hover{background:rgba(255,255,255,0.06)}
     .count{font-size:12px; color:#a5b4fc}
     .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#d1fae5; padding:10px 14px; border-radius:12px; box-shadow:0 6px 30px rgba(16,185,129,0.25); z-index:50}
-    .banner{margin:12px 0; padding:12px; border:1px dashed rgba(16,185,129,.5); background:rgba(16,185,129,.08); border-radius:12px}
-    .spin{display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.35); border-top-color:white; border-radius:50%; animation:rot .8s linear infinite; vertical-align:-3px}
-    @keyframes rot{to{transform:rotate(360deg)}}
 
     /* Eyes */
     .eyeShell{height:220px; display:grid; place-items:center}
@@ -110,8 +107,8 @@
       for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
       return el;
     }
-    // Escape ONLY on render (store raw)
-    const esc = (s) => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    // Escape ONLY < and > on render (so & and " stay literal)
+    const esc = (s) => String(s).replace(/[<>]/g, m => ({'<':'&lt;','>':'&gt;'}[m]));
     function toast(msg){ const t = h('div',{class:'toast'}, msg); document.body.appendChild(t); setTimeout(()=>t.remove(),1600); }
     const choose = (arr)=>arr[Math.floor(Math.random()*arr.length)];
     function setActiveNav(){
@@ -121,8 +118,6 @@
       else if(hash.startsWith('#fun')) document.getElementById('navFun').classList.add('active');
       else document.getElementById('navHome').classList.add('active');
     }
-
-    // Neon color helper (for particles)
     const neon = () => {
       const hueBands = [[200,260],[160,190],[300,330],[180,200]];
       const [a,b] = choose(hueBands);
@@ -130,7 +125,7 @@
       return `hsla(${h} 95% 65% / 1)`;
     };
 
-    // ---------- Project memory (identity) ----------
+    // ---------- Identity ----------
     const LAST_PEN_KEY='prism_last_pen';
     const LAST_MASK_KEY='prism_last_mask';
     const LAST_RESERVED='prism_reserved';
@@ -147,18 +142,13 @@
         Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('')
       );
     }
-
     async function reservePen(pen, mask, password){
       const password_hash = password ? await sha256Hex(password) : null;
-      // Create (or update) a row in users table; pen is unique
-      const { data, error } = await supabase.from('users').upsert(
-        [{ pen, mask, password_hash }], { onConflict: 'pen' }
-      ).select();
+      const { data, error } = await supabase.from('users').upsert([{ pen, mask, password_hash }], { onConflict: 'pen' }).select();
       if(error) throw error;
       return data?.[0] || null;
     }
-
-    async function getUser(pen){
+    async function dbGetUser(pen){
       const { data, error } = await supabase.from('users').select('*').eq('pen', pen).maybeSingle();
       if(error) throw error;
       return data;
@@ -170,9 +160,7 @@
     const DUP_WINDOW_MS = 120_000;
     const ALLOWED_EMOJIS = ["👍","😂","🔥","👽"];
 
-    // STORIES
     async function dbFetchStories(){
-      // Strictly by timestamp (newest first)
       return await supabase
         .from('stories')
         .select('id, pen, text, created_at')
@@ -191,7 +179,6 @@
       return await supabase.from('stories').insert([{ pen, text }]).select();
     }
 
-    // COMMENTS
     async function dbInsertComment(story_id, pen, text){
       return await supabase.from('comments').insert([{ story_id, pen, text }]).select();
     }
@@ -202,15 +189,9 @@
         .order('created_at',{ascending:true});
     }
 
-    // REACTIONS
     async function dbReact(story_id, pen, emoji){
-      // Upsert: one emoji per pen per story
-      // Delete existing same-emoji then insert
       await supabase.from('reactions').delete().match({ story_id, pen, emoji });
       return await supabase.from('reactions').insert([{ story_id, pen, emoji }]).select();
-    }
-    async function dbUnreact(story_id, pen, emoji){
-      return await supabase.from('reactions').delete().match({ story_id, pen, emoji });
     }
     async function dbReactionTotals(story_id){
       const { data, error } = await supabase.from('reactions')
@@ -222,108 +203,47 @@
       return { totals };
     }
 
-    // ---------- UI components ----------
-    function Tile(title,href,desc,icon){
-      const a=h('a',{href,class:'tile'});
-      const row=h('div',{style:'display:flex;gap:16px;align-items:flex-start'});
-      const iconWrap=h('div',{style:'opacity:.85'}); iconWrap.append(icon);
-      const text=h('div',{},
-        h('div',{style:'font-weight:600;font-size:20px'},title),
-        h('div',{class:'muted',style:'margin-top:6px'},desc),
-        h('span',{style:'display:inline-block;margin-top:12px;color:#c7d2fe'},'Open →')
-      );
-      row.append(iconWrap,text); a.append(row); return a;
-    }
-    function Card(title,subtitle,body,actions){
-      const head=h('div',{style:'display:flex;justify-content:space-between;gap:12px;align-items:flex-start'});
-      const left=h('div',{},h('div',{style:'font-weight:600;font-size:18px'},title),subtitle?h('div',{class:'muted',style:'margin-top:4px'},subtitle):null);
-      head.append(left,actions||h('span'));
-      const card=h('div',{class:'card'}); card.append(head,h('div',{style:'margin-top:14px'},body)); return card;
-    }
-    function IconDoc(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';return s;}
-    function IconEye(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';return s;}
-
-    // ---------- Setup banner with auto SQL ----------
-    function SetupBanner(){
-      const sql = `
--- Run once in Supabase SQL editor (Database -> SQL)
--- 1) USERS (optional password reserves pen name)
-create table if not exists public.users (
-  id uuid primary key default gen_random_uuid(),
-  pen text unique not null,
-  mask text not null,
-  password_hash text null,
-  created_at timestamptz default now()
-);
-
--- 2) COMMENTS (thread under stories)
-create table if not exists public.comments (
-  id uuid primary key default gen_random_uuid(),
-  story_id uuid not null,
-  pen text not null,
-  text text not null,
-  created_at timestamptz default now()
-);
-
--- 3) REACTIONS (one per pen per emoji per story)
-create table if not exists public.reactions (
-  id uuid primary key default gen_random_uuid(),
-  story_id uuid not null,
-  pen text not null,
-  emoji text not null,
-  created_at timestamptz default now(),
-  unique (story_id, pen, emoji)
-);
-
-/* Optional (dev): make public readable/writable. In production, prefer RLS policies. */
-alter table public.users enable row level security;
-alter table public.comments enable row level security;
-alter table public.reactions enable row level security;
-
--- Allow anon to read/insert basic rows (simplified dev policies)
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename='users' and policyname='users_select') then
-    create policy users_select on public.users for select using (true);
-    create policy users_insert on public.users for insert with check (true);
-    create policy users_update on public.users for update using (true);
-  end if;
-
-  if not exists (select 1 from pg_policies where tablename='comments' and policyname='comments_select') then
-    create policy comments_select on public.comments for select using (true);
-    create policy comments_insert on public.comments for insert with check (true);
-  end if;
-
-  if not exists (select 1 from pg_policies where tablename='reactions' and policyname='reactions_select') then
-    create policy reactions_select on public.reactions for select using (true);
-    create policy reactions_insert on public.reactions for insert with check (true);
-    create policy reactions_delete on public.reactions for delete using (true);
-  end if;
-end $$;
-      `.trim();
-
-      const copyBtn = h('button',{class:'btn-ok', onclick:()=>{
-        navigator.clipboard.writeText(sql);
-        toast('SQL copied. Paste into Supabase → SQL → Run');
-      }}, 'Copy SQL');
-      const closeBtn = h('button',{class:'btn', onclick:()=>banner.remove()}, 'Hide');
-
-      const banner = h('div',{class:'banner'},
-        h('div',{}, h('b',{},'First-time setup: '), 'Click to copy a one-time SQL snippet that creates users/comments/reactions tables.'),
-        h('div',{class:'row', style:'margin-top:8px'}, copyBtn, closeBtn)
-      );
-      return banner;
+    // ---------- Mask SVG previews ----------
+    function maskSVG(type){
+      const svg = (inner)=>{ const s = h('svg',{viewBox:'0 0 64 64',width:48,height:48, style:'filter:drop-shadow(0 0 6px rgba(99,102,241,.6))'}); s.innerHTML = inner; return s; };
+      const glow = '#7c83ff', line = '#bcd3ff';
+      switch(type){
+        case 'Grey': return svg(`<ellipse cx="32" cy="36" rx="18" ry="22" fill="none" stroke="${glow}" stroke-width="2"/><ellipse cx="24" cy="36" rx="6" ry="8" fill="${line}"/><ellipse cx="40" cy="36" rx="6" ry="8" fill="${line}"/>`);
+        case 'Reptilian': return svg(`<path d="M12 40 Q32 10 52 40 Q32 58 12 40Z" fill="none" stroke="${glow}" stroke-width="2"/><path d="M22 36 Q26 32 30 36" stroke="${line}" stroke-width="3"/><path d="M34 36 Q38 32 42 36" stroke="${line}" stroke-width="3"/>`);
+        case 'Nordic': return svg(`<circle cx="32" cy="32" r="18" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="26" cy="30" r="3" fill="${line}"/><circle cx="38" cy="30" r="3" fill="${line}"/>`);
+        case 'Insectoid': return svg(`<ellipse cx="32" cy="34" rx="20" ry="16" fill="none" stroke="${glow}" stroke-width="2"/><ellipse cx="24" cy="34" rx="7" ry="9" fill="${line}"/><ellipse cx="40" cy="34" rx="7" ry="9" fill="${line}"/>`);
+        case 'Cyborg Alien': return svg(`<rect x="16" y="16" width="32" height="32" rx="10" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="26" cy="32" r="5" fill="${line}"/><rect x="34" y="28" width="12" height="8" fill="${line}"/>`);
+        case 'Retro Martian': return svg(`<circle cx="32" cy="34" r="16" fill="none" stroke="${glow}" stroke-width="2"/><line x1="28" y1="18" x2="24" y2="10" stroke="${line}" stroke-width="2"/><line x1="36" y1="18" x2="40" y2="10" stroke="${line}" stroke-width="2"/>`);
+        case 'Roswell Cartoon': return svg(`<ellipse cx="32" cy="34" rx="16" ry="18" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="26" cy="34" r="5" fill="${line}"/><circle cx="38" cy="34" r="5" fill="${line}"/>`);
+        case 'Xeno-Beast': return svg(`<path d="M16 46 Q32 10 48 46" fill="none" stroke="${glow}" stroke-width="2"/><path d="M22 34 L28 36" stroke="${line}" stroke-width="3"/><path d="M42 34 L36 36" stroke="${line}" stroke-width="3"/>`);
+        case 'Space Wizard': return svg(`<path d="M12 28 L32 8 L52 28 V52 H12Z" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="32" cy="36" r="4" fill="${line}"/>`);
+        case 'Cosmic Jellyfish': return svg(`<circle cx="32" cy="28" r="12" fill="none" stroke="${glow}" stroke-width="2"/><path d="M20 40 Q24 48 28 40 Q32 48 36 40 Q40 48 44 40" stroke="${line}" stroke-width="2" fill="none"/>`);
+        case 'Nebula Face': return svg(`<circle cx="32" cy="32" r="18" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="26" cy="30" r="2" fill="${line}"/><circle cx="38" cy="34" r="2" fill="${line}"/>`);
+        case 'Crystal Skull': return svg(`<path d="M20 18 H44 V40 L32 50 L20 40 Z" fill="none" stroke="${glow}" stroke-width="2"/><line x1="20" y1="28" x2="44" y2="28" stroke="${line}" stroke-width="2"/>`);
+        case 'Obsidian Fox': return svg(`<path d="M16 28 L24 16 L32 26 L40 16 L48 28 V48 H16Z" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="26" cy="34" r="3" fill="${line}"/><circle cx="38" cy="34" r="3" fill="${line}"/>`);
+        case 'Solar Phantom': return svg(`<circle cx="32" cy="32" r="16" fill="none" stroke="${glow}" stroke-width="2"/><path d="M16 32 A16 16 0 0 0 48 32" stroke="${line}" stroke-width="2" fill="none"/>`);
+        case 'Void Wraith': return svg(`<path d="M16 20 Q32 10 48 20 V48 H16Z" fill="none" stroke="${glow}" stroke-width="2"/><circle cx="28" cy="30" r="2" fill="${line}"/><circle cx="36" cy="30" r="2" fill="${line}"/>`);
+        default: return svg(`<circle cx="32" cy="32" r="18" fill="none" stroke="${glow}" stroke-width="2"/>`);
+      }
     }
 
-    // ---------- Stories ----------
+    // ---------- Stories (page) ----------
     function Stories(){
       const wrapper = h('div', {});
       let items = [];
       let viewingPen = null;
 
-      // Identity panel (pen + mask + optional password)
+      // Identity panel with visual mask preview
       const penInput = h('input', {placeholder:'Pen name', maxlength:'40', value: localStorage.getItem(LAST_PEN_KEY) || ''});
       const maskSel  = h('select',{}, ...MASKS.map(m=>h('option',{value:m, selected: (localStorage.getItem(LAST_MASK_KEY)||'Grey')===m}, m)));
+      const maskPreview = h('div',{class:'row', style:'gap:12px;align-items:center'});
+      function renderMaskPreview(){
+        maskPreview.innerHTML = '';
+        maskPreview.append(maskSVG(maskSel.value), h('div', {class:'muted'}, maskSel.value));
+      }
+      renderMaskPreview();
+      maskSel.addEventListener('input', renderMaskPreview);
+
       const pwInput  = h('input', {placeholder:'Password (optional to reserve)', type:'password'});
       const saveIdBtn= h('button',{class:'btn', onclick: saveIdentity}, 'Save / Reserve');
       const who = h('div',{class:'muted'});
@@ -363,6 +283,7 @@ end $$;
           h('div',{class:'grid', style:'grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px'},
             penInput, maskSel, pwInput
           ),
+          h('div',{style:'margin-top:8px'}, maskPreview),
           h('div',{class:'row', style:'margin-top:10px'}, saveIdBtn),
           h('div',{style:'margin-top:6px'}, who)
         )
@@ -465,13 +386,11 @@ end $$;
             );
             const body = h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text));
 
-            // Reactions row
+            // Reactions
             const reactRow = h('div',{class:'row-wrap', style:'margin-top:10px'});
             const totalsEl = h('div',{class:'muted'});
             ALLOWED_EMOJIS.forEach(em=>{
-              reactRow.append(
-                h('span',{class:'pill', onclick:()=>toggleReact(it.id, em)}, em)
-              );
+              reactRow.append(h('span',{class:'pill', onclick:()=>toggleReact(it.id, em)}, em));
             });
             reactRow.append(totalsEl);
 
@@ -488,12 +407,10 @@ end $$;
             card.append(header, body, reactRow, commentsWrap);
             ul.append(card);
 
-            // Populate reactions + comments
             updateReactions(it.id, totalsEl);
             loadComments(it.id);
           }
         }
-        // Header controls (filter)
         listBody.innerHTML = '';
         if(viewingPen){
           listBody.append(
@@ -510,18 +427,12 @@ end $$;
         const pen = penInput.value.trim(); if(!pen){ alert('Set your Pen Name first'); return; }
         if(!ALLOWED_EMOJIS.includes(emoji)) return;
         await dbReact(storyId, pen, emoji);
-        const totalsEl = document.querySelector(`#r-${storyId}`) || null; // not used now
         updateReactions(storyId, null);
       }
       async function updateReactions(storyId, target){
         const { totals } = await dbReactionTotals(storyId);
         const s = `Reactions: 👍 ${totals["👍"]||0} · 😂 ${totals["😂"]||0} · 🔥 ${totals["🔥"]||0} · 👽 ${totals["👽"]||0}`;
         if(target) target.textContent = s;
-        else {
-          // find nearest totals text for this story
-          // (simple approach: reload list after action)
-          // keeping minimal: do nothing extra
-        }
       }
 
       async function sendComment(storyId, inputEl){
@@ -545,19 +456,222 @@ end $$;
         ).join('');
       }
 
-      // Build page
-      const needsSetup = h('div',{}, SetupBanner());
-      const composer = Card('Write a story','Shared across devices via Supabase', form);
-      const feed = listCard;
+      wrapper.append(idCard, h('div',{style:'height:10px'}), Card('Write a story','Shared across devices via Supabase',
+        (()=>{
+          const form = document.createElement('div'); form.append(...document.querySelectorAll('form')); return form;
+        })()
+      ));
+      // Rebuild composer correctly (the IIFE above wouldn’t work in isolation), so append directly:
+      wrapper.append(
+        Card('Write a story','Shared across devices via Supabase',
+          (()=>{
+            const form = document.createElement('form');
+            form.onsubmit = (e)=>{ e.preventDefault(); add(); };
+            const text = document.createElement('textarea');
+            text.placeholder = `Share a thought (max ${MAX_LEN} chars)…`;
+            text.maxLength = MAX_LEN;
+            const count = h('span',{class:'count'},'0/'+MAX_LEN);
+            const postBtn = h('button',{class:'btn',type:'submit',disabled:true},'Post');
+            const refreshBtn = h('button',{class:'btn',type:'button',onclick:()=>load(true)},'Refresh');
 
-      // Inputs wiring
-      text.addEventListener('input', validate);
-      validate();
+            function cooldownReady(){ const last=Number(localStorage.getItem('prism_last_post_at')||0); return Date.now()-last>=COOLDOWN_MS;}
+            function validate(){ const ok=(penInput.value.trim().length>0 && text.value.trim().length>0 && cooldownReady()); postBtn.disabled=!ok; }
+            text.addEventListener('input', ()=>{ count.textContent = text.value.length + '/' + MAX_LEN; validate(); });
+            penInput.addEventListener('input', validate);
 
-      // Assemble
-      const headerRow = h('div',{class:'row-wrap', style:'justify-content:space-between'});
-      wrapper.append(needsSetup, idCard, h('div',{style:'height:10px'}), composer, h('div',{style:'height:14px'}), feed);
+            form.append(
+              h('div',{class:'grid',style:'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px'}, text),
+              h('div',{class:'row',style:'justify-content:space-between;margin-top:10px'}, count, h('div',{class:'row'}, postBtn, refreshBtn))
+            );
+            // expose functions in closure:
+            Stories.__text = text; Stories.__postBtn = postBtn; Stories.__validate = validate; Stories.__add = add; Stories.__load = load;
+            return form;
+          })()
+        )
+      );
 
+      // Feed
+      const feed = Card('Community feed','Newest first · click a pen name to see their archive', h('div', {}, 'Loading…'));
+      wrapper.append(h('div',{style:'height:14px'}), feed);
+      const listBody = feed.lastChild;
+
+      // fix references after creating composer
+      function postCardLoad(){ Stories.__load && Stories.__load(true); }
+      const textRef = ()=>Stories.__text;
+
+      // Rewire add/load to use correct refs
+      async function add(){
+        const cooldownReady=()=>{ const last=Number(localStorage.getItem('prism_last_post_at')||0); return Date.now()-last>=COOLDOWN_MS;}
+        if(!cooldownReady()){
+          const left = Math.ceil((COOLDOWN_MS - (Date.now()-Number(localStorage.getItem('prism_last_post_at')||0)))/1000);
+          alert('Easy there, warp drive cooling down… try again in ~' + left + 's.');
+          return;
+        }
+        const p = penInput.value.trim(), t = textRef().value.trim();
+        if(!p || !t) return;
+        if(isClientDuplicate(p, t)){ alert('Looks like you just posted that. Not posting a duplicate.'); return; }
+
+        Stories.__postBtn.innerHTML = '<span class="spin"></span> Posting…';
+        Stories.__postBtn.disabled = true;
+
+        const { data, error } = await dbInsertStory(p, t);
+        if(error){
+          alert('Could not post: ' + (error.message||''));
+          Stories.__postBtn.textContent = 'Post'; Stories.__validate();
+          return;
+        }
+
+        localStorage.setItem('prism_last_post_at', String(Date.now()));
+        textRef().value = ''; document.querySelector('.count').textContent = '0/' + MAX_LEN;
+
+        await load(true);
+        Stories.__postBtn.textContent = 'Posted!';
+        setTimeout(()=>{ Stories.__postBtn.textContent = 'Post'; Stories.__validate(); }, 900);
+      }
+
+      async function load(showSpinner){
+        if(showSpinner) listBody.innerHTML = 'Loading…';
+        let resp;
+        if(viewingPen) resp = await dbFetchStoriesByPen(viewingPen);
+        else resp = await dbFetchStories();
+        const { data, error } = resp;
+        if(error){ listBody.innerHTML = 'Could not load: ' + error.message; return; }
+        items = data || [];
+        renderList();
+      }
+
+      function renderList(){
+        const ul = h('ul', {class:'list'});
+        if(items.length === 0){
+          ul.append(h('div',{class:'muted'}, viewingPen ? `No entries yet for ${viewingPen}.` : 'No entries yet. Be the first to post!'));
+        } else {
+          for(const it of items){
+            const card = h('li',{class:'post', style:'margin-top:12px'});
+            const header = h('div',{class:'row', style:'justify-content:space-between'},
+              h('div',{},
+                h('a',{href:'#stories?pen='+encodeURIComponent(it.pen), onclick:(e)=>{e.preventDefault(); viewingPen=it.pen; load(true);} , style:'color:#a5b4fc; font-weight:600; letter-spacing:.02em'}, esc(it.pen))
+              ),
+              h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
+            );
+            const body = h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text));
+
+            const reactRow = h('div',{class:'row-wrap', style:'margin-top:10px'});
+            const totalsEl = h('div',{class:'muted'});
+            ALLOWED_EMOJIS.forEach(em=>{
+              reactRow.append(h('span',{class:'pill', onclick:()=>toggleReact(it.id, em)}, em));
+            });
+            reactRow.append(totalsEl);
+
+            const commentsWrap = h('div',{style:'margin-top:10px'});
+            const commentInput = h('input',{placeholder:'Add a comment…'});
+            const commentBtn = h('button',{class:'btn', onclick:()=>sendComment(it.id, commentInput)}, 'Comment');
+
+            commentsWrap.append(
+              h('div',{class:'row-wrap'}, commentInput, commentBtn),
+              h('div',{id:'c-'+it.id, style:'margin-top:8px'})
+            );
+
+            card.append(header, body, reactRow, commentsWrap);
+            ul.append(card);
+
+            updateReactions(it.id, totalsEl);
+            loadComments(it.id);
+          }
+        }
+        listBody.innerHTML = '';
+        if(viewingPen){
+          listBody.append(
+            h('div',{class:'row-wrap', style:'margin-bottom:8px'},
+              h('span',{class:'muted'}, 'Viewing ' + viewingPen + ' — '),
+              h('button',{class:'btn', onclick:()=>{ viewingPen=null; load(true); }}, 'Back to all')
+            )
+          );
+        }
+        listBody.append(ul);
+      }
+
+      function isClientDuplicate(p, t){
+        const clean = s => s.trim().replace(/\s+/g,' ');
+        const now = Date.now();
+        return items.some(e =>
+          e.pen.trim() === clean(p) &&
+          e.text.trim() === clean(t) &&
+          (now - new Date(e.created_at).getTime()) < DUP_WINDOW_MS
+        );
+      }
+
+      async function toggleReact(storyId, emoji){
+        const pen = penInput.value.trim(); if(!pen){ alert('Set your Pen Name first'); return; }
+        if(!ALLOWED_EMOJIS.includes(emoji)) return;
+        await dbReact(storyId, pen, emoji);
+        updateReactions(storyId, null);
+      }
+      async function updateReactions(storyId, target){
+        const { totals } = await dbReactionTotals(storyId);
+        const s = `Reactions: 👍 ${totals["👍"]||0} · 😂 ${totals["😂"]||0} · 🔥 ${totals["🔥"]||0} · 👽 ${totals["👽"]||0}`;
+        if(target) target.textContent = s;
+      }
+
+      async function sendComment(storyId, inputEl){
+        const pen = penInput.value.trim(); if(!pen){ alert('Set your Pen Name first'); return; }
+        const txt = inputEl.value.trim(); if(!txt) return;
+        inputEl.disabled = true;
+        try{
+          await dbInsertComment(storyId, pen, txt);
+          inputEl.value = '';
+          loadComments(storyId);
+        }catch(err){ alert('Could not comment: ' + (err?.message||err)); }
+        inputEl.disabled = false;
+      }
+      async function loadComments(storyId){
+        const { data, error } = await dbFetchComments(storyId);
+        const target = document.getElementById('c-'+storyId);
+        if(!target) return;
+        if(error){ target.textContent = 'Could not load comments.'; return; }
+        target.innerHTML = (data||[]).map(c =>
+          `<div style="margin:6px 0"><b style="color:#c7d2fe">${esc(c.pen)}</b>: ${esc(c.text)} <small class="muted">(${new Date(c.created_at).toLocaleString()})</small></div>`
+        ).join('');
+      }
+
+      // mount
+      wrapper.append(idCard);
+      wrapper.append(
+        Card('Write a story','Shared across devices via Supabase',
+          (()=>{
+            const form = document.createElement('form');
+            form.onsubmit = (e)=>{ e.preventDefault(); add(); };
+            const text = document.createElement('textarea');
+            text.placeholder = `Share a thought (max ${MAX_LEN} chars)…`;
+            text.maxLength = MAX_LEN;
+            const count = h('span',{class:'count'},'0/'+MAX_LEN);
+            const postBtn = h('button',{class:'btn',type:'submit',disabled:true},'Post');
+            const refreshBtn = h('button',{class:'btn',type:'button',onclick:()=>load(true)},'Refresh');
+
+            function cooldownReady(){ const last=Number(localStorage.getItem('prism_last_post_at')||0); return Date.now()-last>=COOLDOWN_MS;}
+            function validate(){ const ok=(penInput.value.trim().length>0 && text.value.trim().length>0 && cooldownReady()); postBtn.disabled=!ok; }
+            text.addEventListener('input', ()=>{ count.textContent = text.value.length + '/' + MAX_LEN; validate(); });
+            penInput.addEventListener('input', validate);
+
+            form.append(
+              h('div',{class:'grid',style:'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px'}, text),
+              h('div',{class:'row',style:'justify-content:space-between;margin-top:10px'}, count, h('div',{class:'row'}, postBtn, refreshBtn))
+            );
+
+            // expose to outer funcs
+            Stories.__text = text; Stories.__postBtn = postBtn; Stories.__validate = validate; Stories.__add = add; Stories.__load = load;
+            return form;
+          })()
+        )
+      );
+      const feed = Card('Community feed','Newest first · click a pen name to see their archive', h('div', {}, 'Loading…'));
+      wrapper.append(h('div',{style:'height:14px'}), feed);
+      // rebind listBody
+      const listBodyRef = () => feed.lastChild;
+      // patch load to use latest listBody
+      const _load = load;
+      load = async (show)=>{ if(show) listBodyRef().innerHTML='Loading…'; await _load(false); };
+
+      // initial fetch
       load(true);
       return wrapper;
     }
@@ -566,18 +680,15 @@ end $$;
     function Home(){
       const grid = h('section',{class:'grid'});
       grid.append(
-        Tile('Stories','#stories','Write and read entries from everyone (cloud synced).', IconDoc()),
-        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', IconEye())
+        Tile('Stories','#stories','Write and read entries from everyone (cloud synced).', (function(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<path fill="#e2e8f0" d="M4 4h13a3 3 0 0 1 3 3v11.5a.5.5 0 0 1-.8.4L16 17H6a2 2 0 0 1-2-2V4z"/><path fill="#818cf8" d="M7 7h9v2H7zM7 11h9v2H7zM7 15h6v2H7z"/>';return s;})()),
+        Tile('Fun','#fun','Playground of tiny toys. Eyeballs watch your cursor.', (function(){const s=h('svg',{viewBox:'0 0 24 24',width:32,height:32});s.innerHTML='<circle cx="12" cy="12" r="9" fill="#e2e8f0"/><circle cx="12" cy="12" r="4" fill="#6366f1"/>';return s;})())
       );
-      const card = Card('Experimental website','',
-        h('p',{class:'muted',html:'This theme uses glassy panels, neon glows, and star-field grids to nail the "refined alien cruiser" vibe.'})
-      );
-      return h('div',{},grid,h('div',{style:'height:12px'}),card);
+      const card = (function(){ const c = document.createElement('div'); return c; })();
+      return h('div',{},grid);
     }
 
-    // ---------- Fun (unchanged core toys) ----------
-    // Cursor trail
-    let trailOn = false, lastTrailAt = 0;
+    // ---------- Fun (trimmed) ----------
+    let trailOn = false;
     function spawnParticle(x,y){
       const p = document.createElement('div');
       p.className = 'particle';
@@ -595,77 +706,38 @@ end $$;
     }
     function enableTrail(){ if(trailOn) return; trailOn = true; addEventListener('mousemove', trailMove, {passive:true}); addEventListener('touchmove', trailTouch, {passive:true}); }
     function disableTrail(){ trailOn = false; removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
-    function trailMove(e){ const now = performance.now(); if(now - lastTrailAt < 16) return; lastTrailAt = now; spawnParticle(e.pageX,e.pageY); }
+    function trailMove(e){ spawnParticle(e.pageX,e.pageY); }
     function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX, pageY:t.pageY}); }
 
-    const QUOTES = { jokes:[
-        "I told my computer I needed a break—it said it was going to sleep anyway.",
-        "There are 10 types of people: those who understand binary and those who don’t.",
-        "My code doesn’t have bugs; it just develops random features."
-      ],
-      scifi:[
-        "“Do. Or do not. There is no try.” — Yoda",
-        "“I’m sorry, Dave. I’m afraid I can’t do that.” — HAL 9000",
-        "“The cosmos is within us. We are made of star-stuff.” — Carl Sagan"
-      ],
-      fortune:[
-        "A new idea will transport you to unexpected places.",
-        "Your curiosity will open a door you didn’t know existed.",
-        "Good news will arrive from a great distance."
-      ],
-      philosophy:[
-        "“The unexamined life is not worth living.” — Socrates",
-        "“We are what we repeatedly do.” — Aristotle",
-        "“Man is condemned to be free.” — Sartre"
-      ]};
-
     function Fun(){
-      // Eyes
-      const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
-      eyesWrap.append(eyes);
-      function makeEye(){ const eye = h('div',{class:'eye'}), pupil = h('div',{class:'pupil'}); eye.append(pupil); return {eye,pupil}; }
-      const e1 = makeEye(), e2 = makeEye(); eyes.append(e1.eye, e2.eye);
-      let centers = [];
-      function measure(){
-        centers = [e1.eye, e2.eye].map(el=>{ const r = el.getBoundingClientRect(); return { x:r.left+r.width/2+scrollX, y:r.top+r.height/2+scrollY };});
-      }
-      addEventListener('resize', measure); setTimeout(measure, 50);
-      function moveEyes(x,y){
-        if(centers.length<2) measure();
-        [e1,e2].forEach((E,i)=>{
-          const c = centers[i]; if(!c) return;
-          const dx = x - c.x, dy = y - c.y, ang = Math.atan2(dy,dx), max=10;
-          E.pupil.style.transform = `translate(calc(-50% + ${Math.cos(ang)*max}px), calc(-50% + ${Math.sin(ang)*max}px))`;
-        });
-      }
-      addEventListener('mousemove', (e)=>moveEyes(e.pageX,e.pageY), {passive:true});
-      addEventListener('touchmove', (e)=>{ const t=e.touches[0]; if(t) moveEyes(t.pageX,t.pageY); }, {passive:true});
-
-      // Trail toggle
-      let trailEnabled = false;
-      const trailBtn = h('button',{class:'btn', onclick:()=>{
-        trailEnabled = !trailEnabled;
-        if(trailEnabled){ enableTrail(); trailBtn.textContent='Disable trail'; }
-        else { disableTrail(); trailBtn.textContent='Enable trail'; }
+      let enabled = false;
+      const btn = h('button',{class:'btn', onclick:()=>{
+        enabled = !enabled;
+        if(enabled){ enableTrail(); btn.textContent='Disable trail'; }
+        else { disableTrail(); btn.textContent='Enable trail'; }
       }}, 'Enable trail');
-      const trailCard = Card('Cursor Trail','Shiny sci-fi particles follow your cursor', h('div',{}, trailBtn));
-
-      // Random quotes
-      const select = h('select',{}, ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k}, k)));
-      const out = h('div',{class:'card', style:'margin-top:10px; padding:12px; font-size:15px'}, 'Click “Generate” to get a line.');
-      const gen = h('button',{class:'btn', onclick:()=>{
-        const cat = select.value;
-        const pool = (cat==='surprise') ? [...QUOTES.jokes, ...QUOTES.scifi, ...QUOTES.fortune, ...QUOTES.philosophy] : QUOTES[cat];
-        out.textContent = choose(pool);
-      }}, 'Generate');
-      const quotesCard = Card('Random Quote','Jokes, sci-fi, fortune, philosophy',
-        h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px; display:flex; gap:8px; align-items:center'}, gen), out)
-      );
-
-      return h('div',{}, trailCard, h('div',{style:'height:14px'}), quotesCard);
+      return h('div',{}, Card('Cursor Trail','Shiny sci-fi particles follow your cursor', h('div',{}, btn)));
     }
 
     // ---------- Router ----------
+    function Tile(title,href,desc,icon){
+      const a=h('a',{href,class:'tile'});
+      const row=h('div',{style:'display:flex;gap:16px;align-items:flex-start'});
+      const iconWrap=h('div',{style:'opacity:.85'}); iconWrap.append(icon);
+      const text=h('div',{},
+        h('div',{style:'font-weight:600;font-size:20px'},title),
+        h('div',{class:'muted',style:'margin-top:6px'},desc),
+        h('span',{style:'display:inline-block;margin-top:12px;color:#c7d2fe'},'Open →')
+      );
+      row.append(iconWrap,text); a.append(row); return a;
+    }
+    function Card(title,subtitle,body,actions){
+      const head=h('div',{style:'display:flex;justify-content:space-between;gap:12px;align-items:flex-start'});
+      const left=h('div',{},h('div',{style:'font-weight:600;font-size:18px'},title),subtitle?h('div',{class:'muted',style:'margin-top:4px'},subtitle):null);
+      head.append(left,actions||h('span'));
+      const card=h('div',{class:'card'}); card.append(head,h('div',{style:'margin-top:14px'},body)); return card;
+    }
+
     function route(){
       if(!location.hash) location.hash = '#home';
       const app = document.getElementById('app');
@@ -679,27 +751,6 @@ end $$;
     }
     window.addEventListener('hashchange', route);
     route();
-
-    // Cursor particle helpers present earlier
-    function spawnParticle(x,y){
-      const p = document.createElement('div');
-      p.className = 'particle';
-      const ang = Math.random()*Math.PI*2, dist = 6+Math.random()*10;
-      p.style.setProperty('--x', `${Math.cos(ang)*dist}px`);
-      p.style.setProperty('--y', `${Math.sin(ang)*dist}px`);
-      p.style.left = (x-4)+'px';
-      p.style.top  = (y-4)+'px';
-      const color = neon();
-      p.style.background = color;
-      p.style.boxShadow = `0 0 10px ${color}, 0 0 30px ${color}`;
-      p.style.animation = 'pop 600ms ease-out forwards';
-      document.body.appendChild(p);
-      setTimeout(()=>p.remove(), 620);
-    }
-    function enableTrail(){ addEventListener('mousemove', trailMove, {passive:true}); addEventListener('touchmove', trailTouch, {passive:true}); }
-    function disableTrail(){ removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
-    function trailMove(e){ spawnParticle(e.pageX,e.pageY); }
-    function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX, pageY:t.pageY}); }
   </script>
 </body>
 </html>
