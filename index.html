@@ -22,8 +22,13 @@
     textarea{min-height:90px;resize:vertical}
     .list{list-style:none;margin:0;padding:0}
     .post{border:1px solid var(--border);background:var(--panel);border-radius:14px;padding:16px}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:rgba(0,0,0,.25);cursor:pointer}
-    .pill:hover{background:rgba(255,255,255,0.06)}
+    /* High-contrast pills */
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 12px;border-radius:999px;
+      border:1px solid #475569; background:#334155; color:#ffffff; cursor:pointer
+    }
+    .pill:hover{ background:#475569 }
     .muted{color:var(--muted)}
     .count{font-size:12px;color:#a5b4fc}
     /* Eyes */
@@ -36,6 +41,8 @@
     /* cursor particles */
     .particle{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;will-change:transform,opacity;filter:blur(0.2px)}
     @keyframes pop{from{transform:translate(var(--x),var(--y)) scale(1);opacity:1}to{transform:translate(calc(var(--x)*2),calc(var(--y)*2)) scale(0);opacity:0}}
+    /* version badge */
+    .version{position:fixed;right:12px;bottom:12px;background:#111827;border:1px solid #334155;color:#93c5fd;padding:6px 10px;border-radius:10px;font-size:12px;z-index:60}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -64,10 +71,12 @@
     <main id="app" style="padding-top:24px"></main>
 
     <footer class="row" style="justify-content:space-between;margin-top:24px">
-      <div class="muted">© <span id="year"></span> Prism</div>
-      <div class="muted">Alien-sleek starter</div>
+      <div>© <span id="year"></span> Prism. Forged in the void.</div>
+      <div class="muted">Alien-sleek starter · Free deploy</div>
     </footer>
   </div>
+
+  <div class="version">v0.2.6</div>
 
   <script>
     // ====== CONFIG ======
@@ -75,6 +84,60 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5peW5xdHBwcGR6cmNpb3pqY3ZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MTAyODcsImV4cCI6MjA3MjA4NjI4N30.lnlXM9lzfdOaCW6UQ5fBZ_SHd8TOVF0KCgpSsTrMbgs";
     document.getElementById('year').textContent = new Date().getFullYear();
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ====== COPY (DO NOT EDIT UNLESS YOU WANT TEXT CHANGES) ======
+    // ==== BEGIN HOME COPY (do not edit) ====
+    const COPY = {
+      home: {
+        storiesTitle: "Stories",
+        storiesSubtitle: "Write and read entries (cloud synced)",
+        storiesCta: "Go to Stories →",
+        funTitle: "Fun",
+        funSubtitle: "Tiny toys",
+        funCta: "Go to Fun →",
+        aboutTitle: "Experimental website",
+        aboutBody: 'This theme uses glassy panels, neon glows, and a star-field grid to nail the “refined alien cruiser” vibe. Lightweight, single-file, and cloud-synced via Supabase.'
+      },
+      footer: {
+        right: "Alien-sleek starter · Free deploy"
+      },
+      identity: {
+        title: "Identity",
+        subtitle: "Password optional — use it to reserve your pen name.",
+        penPlaceholder: "Pen name",
+        maskLabel: "Mask",
+        pwPlaceholder: "Password (optional to reserve pen)",
+        saveBtn: "Save / Reserve"
+      },
+      compose: {
+        title: "Write a story",
+        placeholder: "Share a thought… (max 2000 chars)"
+      },
+      feed: {
+        title: "Community feed",
+        subtitle: "Newest first · click a pen to filter",
+        none: "No entries yet.",
+        noneFor: (p)=>`No entries yet for ${p}.`,
+        back: "Back to all",
+        reactionsLabel: (t)=>`Reactions: 👍 ${t["👍"]||0} · 😂 ${t["😂"]||0} · 🔥 ${t["🔥"]||0} · 👽 ${t["👽"]||0}`
+      },
+      fun: {
+        eyesTitle: "The Eyes",
+        eyesSubtitle: "They follow your cursor…",
+        trailTitle: "Cursor Trail",
+        trailSubtitle: "Toggle neon particles following your cursor",
+        trailEnable: "Enable trail",
+        trailDisable: "Disable trail",
+        quotesTitle: "Random Quote",
+        quotesSubtitle: "Jokes, sci-fi, fortunes, philosophy",
+        quotesButton: "Generate",
+        blobTitle: "Pet Blob",
+        blobSubtitle: "Customize color & size",
+        blobColor: "Color:",
+        blobSize: "Size:"
+      }
+    };
+    // ==== END HOME COPY ====
 
     // ====== helpers ======
     function h(tag, attrs={}, ...children){
@@ -129,7 +192,6 @@
     // ====== Identity (with mask preview) ======
     const LAST_PEN_KEY='prism_last_pen';
     const LAST_MASK_KEY='prism_last_mask';
-    const LAST_RESERVED='prism_reserved';
     const MASKS = ["Grey","Reptilian","Nordic","Insectoid","Cyborg Alien","Retro Martian","Roswell Cartoon","Xeno-Beast","Space Wizard","Cosmic Jellyfish","Nebula Face","Crystal Skull","Obsidian Fox","Solar Phantom","Void Wraith"];
     function maskSVG(type){
       const svg = (inner)=>{ const s = h('svg',{viewBox:'0 0 64 64',width:56,height:56, style:'filter:drop-shadow(0 0 6px rgba(99,102,241,.6))'}); s.innerHTML = inner; return s; };
@@ -158,23 +220,24 @@
     function Home(){
       const grid = h('section',{class:'grid'});
       grid.append(
-        Card('Stories','Write and read entries (cloud synced)', h('div',{}, h('a',{href:'#stories', style:'color:#c7d2fe'}, 'Go to Stories →'))),
-        Card('Fun','Tiny toys', h('div',{}, h('a',{href:'#fun', style:'color:#c7d2fe'}, 'Go to Fun →')))
+        Card(COPY.home.storiesTitle, COPY.home.storiesSubtitle, h('div',{}, h('a',{href:'#stories', style:'color:#c7d2fe'}, COPY.home.storiesCta))),
+        Card(COPY.home.funTitle, COPY.home.funSubtitle, h('div',{}, h('a',{href:'#fun', style:'color:#c7d2fe'}, COPY.home.funCta)))
       );
-      return h('div',{}, grid);
+      const about = Card(COPY.home.aboutTitle,'', h('p',{class:'muted', html: COPY.home.aboutBody}));
+      return h('div',{}, grid, h('div',{style:'height:12px'}), about);
     }
 
     function Stories(){
       const wrapper = h('div',{}); let items=[]; let viewingPen=null;
 
       // Identity
-      const penInput = h('input',{placeholder:'Pen name', maxlength:'40', value:localStorage.getItem(LAST_PEN_KEY)||''});
+      const penInput = h('input',{placeholder:COPY.identity.penPlaceholder, maxlength:'40', value:localStorage.getItem(LAST_PEN_KEY)||''});
       const maskSel  = h('select',{}, ...MASKS.map(m=>h('option',{value:m,selected:(localStorage.getItem(LAST_MASK_KEY)||'Grey')===m}, m)));
       const maskRow  = h('div',{class:'row',style:'gap:12px;align-items:center;margin-top:6px'});
       function renderMask(){ maskRow.innerHTML=''; maskRow.append(maskSVG(maskSel.value), h('div',{class:'muted'}, maskSel.value)); }
       renderMask(); maskSel.addEventListener('input', renderMask);
 
-      const pw = h('input',{type:'password', placeholder:'Password (optional to reserve pen)'});
+      const pw = h('input',{type:'password', placeholder:COPY.identity.pwPlaceholder});
       async function reserve(){
         const p = penInput.value.trim(); if(!p) return alert('Enter a pen name');
         const password = pw.value.trim() || null;
@@ -185,16 +248,16 @@
         localStorage.setItem(LAST_PEN_KEY,p); localStorage.setItem(LAST_MASK_KEY,maskSel.value);
         alert(password ? 'Reserved! 🔒' : 'Saved (guest)');
       }
-      const idCard = Card('Identity','Password optional — use it to reserve your pen name.',
+      const idCard = Card(COPY.identity.title, COPY.identity.subtitle,
         h('div',{},
           h('div',{class:'grid',style:'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px'}, penInput, maskSel, pw),
           maskRow,
-          h('div',{class:'row',style:'margin-top:8px'}, h('button',{class:'pill',onclick:reserve},'Save / Reserve'))
+          h('div',{class:'row',style:'margin-top:8px'}, h('button',{class:'pill',onclick:reserve}, COPY.identity.saveBtn))
         )
       );
 
       // Composer
-      const text = h('textarea',{placeholder:'Share a thought… (max 2000 chars)', maxlength:2000});
+      const text = h('textarea',{placeholder:COPY.compose.placeholder, maxlength:2000});
       const count= h('span',{class:'count'},'0/2000');
       const postBtn=h('button',{class:'pill',onclick:add,disabled:true},'Post');
       const refreshBtn=h('button',{class:'pill',onclick:()=>load(true)},'Refresh');
@@ -204,13 +267,13 @@
       text.addEventListener('input',()=>{count.textContent=text.value.length+'/2000'; validate();});
       penInput.addEventListener('input', validate);
 
-      const composeCard = Card('Write a story','', h('div',{},
+      const composeCard = Card(COPY.compose.title,'', h('div',{},
         h('div',{class:'grid',style:'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px'}, text),
         h('div',{class:'row',style:'justify-content:space-between;margin-top:10px'}, count, h('div',{class:'row'}, postBtn, refreshBtn))
       ));
 
       // Feed
-      const feedCard = Card('Community feed','Newest first · click a pen to filter', h('div',{},'Loading…'));
+      const feedCard = Card(COPY.feed.title, COPY.feed.subtitle, h('div',{},'Loading…'));
       const listBody = feedCard.lastChild;
 
       function isDup(p,t){ const clean=s=>s.trim().replace(/\s+/g,' '); const now=Date.now(); return items.some(e=> e.pen.trim()===clean(p) && e.text.trim()===clean(t) && (now-new Date(e.created_at).getTime())<120000); }
@@ -238,17 +301,13 @@
 
       function renderList(){
         const ul = h('ul',{class:'list'});
-        if(items.length===0){ ul.append(h('div',{class:'muted'}, viewingPen?`No entries yet for ${viewingPen}.`:'No entries yet.')); }
+        if(items.length===0){ ul.append(h('div',{class:'muted'}, viewingPen?COPY.feed.noneFor(viewingPen):COPY.feed.none)); }
         items.forEach(it=>{
           const li = h('li',{class:'post',style:'margin-top:12px'});
-
-          // header
           const header = h('div',{class:'row',style:'justify-content:space-between'},
             h('div',{}, h('a',{href:'#stories',onclick:(e)=>{e.preventDefault(); viewingPen=it.pen; load(true);},style:'color:#a5b4fc;font-weight:600'}, esc(it.pen))),
             h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
           );
-
-          // body
           const body = h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text));
 
           // reactions (instant update)
@@ -278,7 +337,7 @@
           listBody.append(
             h('div',{class:'row-wrap',style:'margin-bottom:8px'},
               h('span',{class:'muted'},'Viewing '+viewingPen+' — '),
-              h('button',{class:'pill',onclick:()=>{viewingPen=null; load(true);}},'Back to all')
+              h('button',{class:'pill',onclick:()=>{viewingPen=null; load(true);}}, COPY.feed.back)
             )
           );
         }
@@ -293,7 +352,7 @@
       }
       async function updateReactions(storyId, target){
         const { totals } = await dbReactionTotals(storyId);
-        const s = `Reactions: 👍 ${totals["👍"]||0} · 😂 ${totals["😂"]||0} · 🔥 ${totals["🔥"]||0} · 👽 ${totals["👽"]||0}`;
+        const s = COPY.feed.reactionsLabel(totals);
         if(target) target.textContent = s;
       }
       async function sendComment(storyId, inputEl){
@@ -315,7 +374,7 @@
       return wrapper;
     }
 
-    // Fun toys restored
+    // Fun toys
     function Fun(){
       // Eyes
       const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
@@ -342,7 +401,7 @@
       function disableTrail(){ trailOn=false; removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
       function trailMove(e){ spawnParticle(e.pageX,e.pageY); }
       function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX,pageY:t.pageY}); }
-      const trailBtn=h('button',{class:'pill',onclick:()=>{ if(trailOn){ disableTrail(); trailBtn.textContent='Enable trail'; } else { enableTrail(); trailBtn.textContent='Disable trail'; } }},'Enable trail');
+      const trailBtn=h('button',{class:'pill',onclick:()=>{ if(trailOn){ disableTrail(); trailBtn.textContent=COPY.fun.trailEnable; } else { enableTrail(); trailBtn.textContent=COPY.fun.trailDisable; } }}, COPY.fun.trailEnable);
 
       // Quotes
       const QUOTES = {
@@ -369,7 +428,7 @@
       };
       const select = h('select',{}, ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k},k)));
       const out = h('div',{class:'card',style:'margin-top:10px;padding:12px;font-size:15px'}, 'Click “Generate”.');
-      const gen = h('button',{class:'pill',onclick:()=>{ const cat=select.value; const pool=(cat==='surprise')?[...QUOTES.jokes,...QUOTES.scifi,...QUOTES.fortune,...QUOTES.philosophy]:QUOTES[cat]; out.textContent=choose(pool); }},'Generate');
+      const gen = h('button',{class:'pill',onclick:()=>{ const cat=select.value; const pool=(cat==='surprise')?[...QUOTES.jokes,...QUOTES.scifi,...QUOTES.fortune,...QUOTES.philosophy]:QUOTES[cat]; out.textContent=choose(pool); }}, COPY.fun.quotesButton);
 
       // Blob
       const blob = h('div',{style:'width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.5),rgba(99,102,241,.6) 35%,rgba(2,6,23,.9) 70%);border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px rgba(99,102,241,.35)'});
@@ -381,17 +440,13 @@
       setBlobColor('indigo');
 
       return h('div',{},
-        Card('The Eyes','They follow your cursor…', eyesWrap),
+        Card(COPY.fun.eyesTitle, COPY.fun.eyesSubtitle, eyesWrap),
         h('div',{style:'height:14px'}),
-        Card('Cursor Trail','Toggle neon particles following your cursor', h('div',{}, trailBtn)),
+        Card(COPY.fun.trailTitle, COPY.fun.trailSubtitle, h('div',{}, trailBtn)),
         h('div',{style:'height:14px'}),
-        Card('Random Quote','Jokes, sci-fi, fortunes, philosophy',
-          h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)
-        ),
+        Card(COPY.fun.quotesTitle, COPY.fun.quotesSubtitle, h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)),
         h('div',{style:'height:14px'}),
-        Card('Pet Blob','Customize color & size',
-          h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{},'Color: ',colorSel), h('label',{},'Size: ',sizeSel)))
-        )
+        Card(COPY.fun.blobTitle, COPY.fun.blobSubtitle, h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{}, COPY.fun.blobColor, ' ', colorSel), h('label',{}, COPY.fun.blobSize, ' ', sizeSel))))
       );
     }
 
