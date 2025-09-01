@@ -146,7 +146,7 @@
     </footer>
   </div>
 
-  <div class="version">v0.2.9</div>
+  <div class="version">v0.2.9a</div>
 
   <!-- Jukebox (sticky) -->
   <div class="jukebox" id="jukebox">
@@ -497,7 +497,6 @@
         const f = file.files[0];
         const ext = (f.name.split('.').pop()||'bin').toLowerCase();
         const path = `${pen}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        // upload to public 'gallery' bucket
         const up = await supabase.storage.from('gallery').upload(path, f, { upsert:false, contentType: f.type || undefined });
         if(up.error){ alert('Upload failed: '+up.error.message); return; }
         const { data:pub } = supabase.storage.from('gallery').getPublicUrl(path);
@@ -511,7 +510,7 @@
         if(loading || reachedEnd) return; loading=true;
         const { data, error } = await dbFetchGallery({ offset, limit: PAGE });
         if(error){
-          grid.innerHTML = setupCardHTML(); // show setup helper if tables missing
+          grid.innerHTML = setupCardHTML();
           return;
         }
         const rows = data || [];
@@ -523,7 +522,6 @@
       }
 
       function renderFrame(row){
-        // media element
         let media;
         const mt = String(row.mime||'').toLowerCase();
         if(mt.startsWith('video') || /\.(mp4|webm|mov|m4v)$/i.test(row.url)){
@@ -531,7 +529,7 @@
         } else if(mt.startsWith('image') || /\.(png|jpg|jpeg|gif|webp|avif)$/i.test(row.url)){
           media = h('img',{src:row.url, loading:'lazy', alt:row.summary||''});
         } else {
-          media = h('div',{class:'muted',style:'height:260px;display:grid;place-items:center;border:1px dashed rgba(255,255,255,.2);border-radius:12px'}, 'Preview not supported — download: ', h('a',{href:row.url,style:'color:#c7d2fe'}, 'open'));
+          media = h('div',{class:'muted',style:'height:260px;display:grid;place-items:center;border:1px dashed rgba(255,255,255,.2);border-radius:12px'}, 'Preview not supported — ', h('a',{href:row.url,style:'color:#c7d2fe'}, 'open'));
         }
         const who = h('div',{class:'who'}, maskSVG(row.mask||'Grey',16), esc(row.pen));
         const meta = h('div',{class:'meta'}, who, h('time',{class:'muted'}, new Date(row.created_at).toLocaleString()), h('div',{class:'sum'}, esc(row.summary||'')));
@@ -576,15 +574,12 @@ create table if not exists public.tracks(
       return wrap;
     }
 
-    // ====== Fun page (unchanged core; trimmed) ======
     function Fun(){
       const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
       function makeEye(){ const eye = h('div',{class:'eye'}), pupil=h('div',{class:'pupil'}); eye.append(pupil); return {eye,pupil}; }
       const e1=makeEye(), e2=makeEye(); eyes.append(e1.eye, e2.eye); eyesWrap.append(eyes);
       let centers=[]; function measure(){ centers=[e1.eye,e2.eye].map(el=>{ const r=el.getBoundingClientRect(); return {x:r.left+r.width/2+scrollX,y:r.top+r.height/2+scrollY};}); }
-      addEventListener('resize', measure); setTimeout(m
-
-easure,60);
+      addEventListener('resize', measure); setTimeout(measure,60);
       function moveEyes(x,y){ if(centers.length<2) measure(); [e1,e2].forEach((E,i)=>{ const c=centers[i]; const dx=x-c.x, dy=y-c.y, ang=Math.atan2(dy,dx), max=10; E.pupil.style.transform=`translate(calc(-50% + ${Math.cos(ang)*max}px), calc(-50% + ${Math.sin(ang)*max}px))`; }); }
       addEventListener('mousemove',(e)=>moveEyes(e.pageX,e.pageY),{passive:true}); addEventListener('touchmove',(e)=>{const t=e.touches[0]; if(t) moveEyes(t.pageX,t.pageY);},{passive:true});
 
@@ -610,15 +605,15 @@ easure,60);
       const diceBtn = h('button',{class:'pill',onclick:()=>{ diceOut.textContent = String(1 + Math.floor(Math.random()*6)); }}, 'Roll d6');
 
       return h('div',{},
-        Card('The Eyes','They follow your cursor…', eyesWrap),
+        Card(COPY.fun.eyesTitle, COPY.fun.eyesSubtitle, eyesWrap),
         h('div',{style:'height:14px'}),
-        Card('Cursor Trail','Toggle neon particles following your cursor', h('div',{}, trailBtn)),
+        Card(COPY.fun.trailTitle, COPY.fun.trailSubtitle, h('div',{}, trailBtn)),
         h('div',{style:'height:14px'}),
-        Card('Random Quote','Jokes, sci-fi, fortunes, philosophy', h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)),
+        Card(COPY.fun.quotesTitle, COPY.fun.quotesSubtitle, h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)),
         h('div',{style:'height:14px'}),
-        Card('Pet Blob','Customize color & size', h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{}, 'Color: ', colorSel), h('label',{}, 'Size: ', sizeSel)))),
+        Card(COPY.fun.blobTitle, COPY.fun.blobSubtitle, h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{}, COPY.fun.blobColor, ' ', colorSel), h('label',{}, COPY.fun.blobSize, ' ', sizeSel)))),
         h('div',{style:'height:14px'}),
-        Card('Dice','Roll a d6', h('div',{}, diceBtn, diceOut))
+        Card(COPY.fun.diceTitle, COPY.fun.diceSubtitle, h('div',{}, diceBtn, diceOut))
       );
     }
 
@@ -665,7 +660,7 @@ easure,60);
         i = (k + list.length) % list.length;
         const item = list[i];
         let url = item.path;
-        if(!/^https?:/.test(url)){ // storage path -> public url
+        if(!/^https?:/.test(url)){
           const { data } = supabase.storage.from('tracks').getPublicUrl(url);
           url = data.publicUrl;
         }
@@ -699,8 +694,8 @@ easure,60);
         file.value='';
       });
 
-      // start on first item (requires user gesture on mobile)
-      setScreen('PRISM FM','Forged in the Void');
+      // initial label
+      setScreen('PRISM FM','Space Wizard');
     })();
 
   </script>
