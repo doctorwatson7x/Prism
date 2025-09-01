@@ -9,7 +9,7 @@
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;background:radial-gradient(circle at 10% 10%, #0a0f1f 0%, #000 60%) fixed;color:var(--text)}
     a{color:inherit;text-decoration:none}
-    .container{max-width:1000px;margin:0 auto;padding:0 16px 96px}
+    .container{max-width:1000px;margin:0 auto;padding:0 16px 120px}
     header{position:sticky;top:0;backdrop-filter:blur(10px) saturate(120%);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.03);z-index:10}
     header .row{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
     nav{ display:flex; gap:8px; align-items:center; }
@@ -37,14 +37,12 @@
     .pupil{position:absolute;top:50%;left:50%;height:36px;width:36px;background:#1e1b4b;border-radius:50%;transform:translate(-50%,-50%)}
     .pupil::after{content:"";position:absolute;inset:4px;background:var(--brand);border-radius:50%}
 
-    /* cursor particles */
+    /* particles */
     .particle{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;will-change:transform,opacity;filter:blur(0.2px)}
     @keyframes pop{from{transform:translate(var(--x),var(--y)) scale(1);opacity:1}to{transform:translate(calc(var(--x)*2),calc(var(--y)*2)) scale(0);opacity:0}}
 
-    /* version badge */
-    .version{position:fixed;right:12px;bottom:12px;background:#111827;border:1px solid #334155;color:#93c5fd;padding:6px 10px;border-radius:10px;font-size:12px;z-index:60}
+    .version{position:fixed;right:12px;bottom:84px;background:#111827;border:1px solid #334155;color:#93c5fd;padding:6px 10px;border-radius:10px;font-size:12px;z-index:60}
 
-    /* Header identity badge */
     .id-badge{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(99,102,241,.08)}
 
     /* Spaceship widgets */
@@ -60,34 +58,58 @@
     .slider{appearance:none;width:100%;height:8px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--border)}
     .slider::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:#7c83ff;border:1px solid #bcd3ff;box-shadow:0 0 12px rgba(124,131,255,.7)}
 
-    /* Keep SVGs tidy inside pills */
     .pill svg{ display:block; width:22px; height:22px; flex:0 0 auto; }
 
-    /* --- MOBILE POLISH --- */
-    @media (max-width: 640px){
-      .container{padding:0 12px 88px}
+    /* --- Gallery --- */
+    .gallery-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+    .frame{
+      position:relative;border-radius:18px;padding:10px;
+      background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
+      border:1px solid rgba(124,131,255,.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 0 1px rgba(124,131,255,.15), 0 12px 40px rgba(124,131,255,.18);
+    }
+    .frame::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;background:radial-gradient(120px 60px at 30% 0%, rgba(124,131,255,.22), transparent 60%);}
+    .frame img,.frame video{width:100%;height:260px;object-fit:cover;border-radius:12px;display:block;filter:saturate(1.05) contrast(1.03);}
+    .frame .meta{display:flex;align-items:center;gap:8px;margin-top:10px}
+    .frame .who{display:flex;align-items:center;gap:6px;font-weight:600;letter-spacing:.01em;color:#c7d2fe}
+    .frame .sum{margin-left:auto;font-size:12px;color:#a5b4fc;max-width:45%;text-align:right}
+    .gallery-sentinel{height:1px}
 
-      /* Header becomes two-row: logo + identity on row 1, tabs on row 2 */
+    /* --- Jukebox --- */
+    .jukebox{position:fixed;left:0;right:0;bottom:0;z-index:80;backdrop-filter:blur(8px) saturate(120%);background:rgba(9,12,25,.78);border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -10px 40px rgba(99,102,241,.18)}
+    .jb-inner{max-width:1000px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+    .jb-screen{min-width:200px;max-width:240px;padding:8px 10px;border-radius:10px;background:linear-gradient(180deg,rgba(124,131,255,.16),rgba(124,131,255,.08));border:1px solid rgba(124,131,255,.35);color:#dbeafe;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+    .jb-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#1f2937;color:#e5e7eb;cursor:pointer}
+    .jb-btn:hover{background:#334155}
+    .jb-glyph{font-size:18px}
+    .jb-track{flex:1}
+    .jb-scrub{width:100%}
+    .jb-time{font-size:12px;color:#93c5fd}
+    .jb-upload{margin-left:8px}
+    .jb-screen .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+
+    /* Reactions on mobile: inline, scrollable */
+    .reactions{ display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .reactions .pill{ padding:8px 10px; font-size:16px; flex:0 0 auto; }
+
+    /* Footer layout */
+    footer .foot-top{ white-space:nowrap; }
+    footer .foot-bottom{ white-space:nowrap; }
+
+    /* --- Mobile polish --- */
+    @media (max-width: 640px){
+      .container{padding:0 12px 140px}
       header .row{padding:10px 0; flex-wrap:wrap; align-items:flex-start; gap:8px;}
       #identityBadge{ order:2; margin-left:auto; transform:scale(.95); }
       nav{ order:3; width:100%; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
       nav a{ padding:10px 10px; }
-
       .card{padding:18px;border-radius:16px}
       .grid{grid-template-columns:1fr}
       .panel{grid-template-columns:1fr}
       .dial{width:120px;height:120px}
-      .pill{width:auto; justify-content:center}
+      .pill{width:auto;justify-content:center}
       textarea,input,select{padding:11px}
-
-      /* Reactions: keep emoji pills side-by-side and scrollable, not stacked */
-      .reactions{ display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-      .reactions .pill{ padding:8px 10px; font-size:16px; flex:0 0 auto; }
-
-      /* Footer: two lines as requested */
       footer{ flex-direction:column; align-items:center; justify-content:center !important; gap:6px !important; text-align:center; }
-      footer .foot-top{ white-space:nowrap; }
-      footer .foot-bottom{ white-space:nowrap; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -109,6 +131,7 @@
         <nav>
           <a href="#home" id="navHome">Home</a>
           <a href="#stories" id="navStories">Stories</a>
+          <a href="#gallery" id="navGallery">Gallery</a>
           <a href="#fun" id="navFun">Fun</a>
         </nav>
         <div id="identityBadge" class="id-badge" title="Signed mask"></div>
@@ -123,7 +146,26 @@
     </footer>
   </div>
 
-  <div class="version">v0.2.8b</div>
+  <div class="version">v0.2.9</div>
+
+  <!-- Jukebox (sticky) -->
+  <div class="jukebox" id="jukebox">
+    <div class="jb-inner">
+      <div class="jb-screen" id="jbScreen"><span id="jbMaskIcon"></span><span class="name">PRISM FM · Tap Play</span></div>
+      <button class="jb-btn" id="jbPrev" title="Prev"><span class="jb-glyph">⏮</span></button>
+      <button class="jb-btn" id="jbPlay" title="Play/Pause"><span class="jb-glyph">▶</span></button>
+      <button class="jb-btn" id="jbNext" title="Next"><span class="jb-glyph">⏭</span></button>
+      <div class="jb-track">
+        <input type="range" min="0" max="100" value="0" class="jb-scrub" id="jbScrub">
+        <div class="jb-time" id="jbTime">0:00 / 0:00</div>
+      </div>
+      <label class="jb-btn jb-upload" title="Upload track">
+        <input id="jbFile" type="file" accept="audio/*" hidden>
+        <span class="jb-glyph">⬆</span>
+      </label>
+      <audio id="jbAudio" preload="metadata"></audio>
+    </div>
+  </div>
 
   <script>
     // ====== CONFIG ======
@@ -164,10 +206,17 @@
         quotesTitle: "Random Quote", quotesSubtitle: "Jokes, sci-fi, fortunes, philosophy", quotesButton: "Generate",
         blobTitle: "Pet Blob", blobSubtitle: "Customize color & size", blobColor: "Color:", blobSize: "Size:",
         diceTitle: "Dice", diceSubtitle: "Roll a d6"
+      },
+      gallery: {
+        title: "Gallery",
+        subtitle: "Endless scroll • Alien glass frames",
+        uploadBtn: "Upload artwork",
+        sumPH: "Optional summary (caption)",
+        tip: "Supported: images & videos (jpg, png, webp, gif, mp4, webm, mov…)"
       }
     };
 
-    // ====== HELPERS ======
+    // ====== helpers ======
     function h(tag, attrs={}, ...children){
       const el = document.createElement(tag);
       for(const k in attrs){
@@ -178,7 +227,6 @@
       for(const c of children){ if(c==null) continue; el.append(c.nodeType ? c : document.createTextNode(c)); }
       return el;
     }
-    // SVG helper (namespace-safe on all browsers)
     const SVG_NS = 'http://www.w3.org/2000/svg';
     function hs(tag, attrs = {}){ const el = document.createElementNS(SVG_NS, tag); for(const k in attrs) el.setAttribute(k, attrs[k]); return el; }
 
@@ -189,6 +237,7 @@
       document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
       if(hash.startsWith('#stories')) document.getElementById('navStories').classList.add('active');
       else if(hash.startsWith('#fun')) document.getElementById('navFun').classList.add('active');
+      else if(hash.startsWith('#gallery')) document.getElementById('navGallery').classList.add('active');
       else document.getElementById('navHome').classList.add('active');
     }
     function Card(title, subtitle, body){
@@ -204,12 +253,7 @@
     const MASKS = ["Grey","Reptilian","Nordic","Insectoid","Cyborg Alien","Retro Martian","Roswell Cartoon","Xeno-Beast","Space Wizard","Cosmic Jellyfish","Nebula Face","Crystal Skull","Obsidian Fox","Solar Phantom","Void Wraith"];
 
     function maskSVG(type,size=24){
-      const svg = (inner) => {
-        const s = hs('svg', { viewBox: '0 0 64 64', width: String(size), height: String(size) });
-        s.style.filter = 'drop-shadow(0 0 6px rgba(99,102,241,.6))';
-        s.innerHTML = inner;
-        return s;
-      };
+      const svg = (inner) => { const s = hs('svg', { viewBox: '0 0 64 64', width: String(size), height: String(size) }); s.style.filter='drop-shadow(0 0 6px rgba(99,102,241,.6))'; s.innerHTML = inner; return s; };
       const glow = '#7c83ff', line = '#bcd3ff';
       switch(type){
         case 'Grey': return svg(`<ellipse cx="32" cy="36" rx="18" ry="22" fill="none" stroke="${glow}" stroke-width="2"/><ellipse cx="24" cy="36" rx="6" ry="8" fill="${line}"/><ellipse cx="40" cy="36" rx="6" ry="8" fill="${line}"/>`);
@@ -247,11 +291,24 @@
     async function dbInsertComment(story_id, pen, text){ return await supabase.from('comments').insert([{ story_id, pen, text }]).select(); }
     async function dbFetchComments(story_id){ return await supabase.from('comments').select('id, story_id, pen, text, created_at').eq('story_id', story_id).order('created_at',{ascending:true}); }
     async function dbReact(story_id, pen, emoji){ await supabase.from('reactions').delete().match({ story_id, pen, emoji }); return await supabase.from('reactions').insert([{ story_id, pen, emoji }]).select(); }
-    async function dbReactionTotals(story_id){ const { data, error } = await supabase.from('reactions').select('emoji, count:emoji', { count:'exact', head:false }).eq('story_id', story_id); if(error) return { totals:{} }; const totals={ "👍":0,"😂":0,"🔥":0,"👽":0 }; (data||[]).forEach(r=>{ if(ALLOWED_EMOJIS.includes(r.emoji)) totals[r.emoji]=(totals[r.emoji]||0)+1; }); return { totals }; }
+    async function dbReactionTotals(story_id){
+      const { data } = await supabase.from('reactions').select('emoji').eq('story_id', story_id);
+      const totals={ "👍":0,"😂":0,"🔥":0,"👽":0 };
+      (data||[]).forEach(r=>{ if(ALLOWED_EMOJIS.includes(r.emoji)) totals[r.emoji]=(totals[r.emoji]||0)+1; });
+      return { totals };
+    }
     async function dbFetchUser(pen){ return await supabase.from('users').select('pen, mask').eq('pen', pen).maybeSingle(); }
     async function dbUpsertUser(pen, mask, password_hash){ return await supabase.from('users').upsert([{ pen, mask, password_hash }], { onConflict:'pen' }); }
 
-    // Cache masks by pen to show icons in the feed
+    // Gallery tables
+    async function dbInsertGallery({pen, mask, summary, url, mime}){ return await supabase.from('gallery_posts').insert([{ pen, mask, summary, url, mime }]).select(); }
+    async function dbFetchGallery({offset, limit}){ return await supabase.from('gallery_posts').select('id, pen, mask, summary, url, mime, created_at').order('created_at',{ascending:false}).range(offset, offset+limit-1); }
+
+    // Tracks (jukebox)
+    async function dbInsertTrack({pen, mask, path}){ return await supabase.from('tracks').insert([{ pen, mask, path }]).select(); }
+    async function dbFetchTracks(){ return await supabase.from('tracks').select('id, pen, mask, path, created_at').order('created_at',{ascending:true}); }
+
+    // ====== mask cache ======
     const maskCache = new Map();
     async function getMaskForPen(pen){
       if(maskCache.has(pen)) return maskCache.get(pen);
@@ -265,10 +322,11 @@
       const grid = h('section',{class:'grid'});
       grid.append(
         Card(COPY.home.storiesTitle, COPY.home.storiesSubtitle, h('div',{}, h('a',{href:'#stories', style:'color:#c7d2fe'}, COPY.home.storiesCta))),
+        Card('Gallery', 'Endless neon frames', h('div',{}, h('a',{href:'#gallery', style:'color:#c7d2fe'}, 'Go to Gallery →'))),
         Card(COPY.home.funTitle, COPY.home.funSubtitle, h('div',{}, h('a',{href:'#fun', style:'color:#c7d2fe'}, COPY.home.funCta)))
       );
 
-      // Identity on Home (with mask grid)
+      // Identity on Home
       const penInput = h('input',{placeholder:COPY.identity.penPlaceholder, maxlength:'40', value:localStorage.getItem(LAST_PEN_KEY)||''});
       const pw = h('input',{type:'password', placeholder:COPY.identity.pwPlaceholder});
       let currentMask = localStorage.getItem(LAST_MASK_KEY) || 'Grey';
@@ -296,7 +354,6 @@
         localStorage.setItem(LAST_PEN_KEY,p); localStorage.setItem(LAST_MASK_KEY,currentMask);
         updateIdentityBadge(); alert(password ? 'Reserved! 🔒' : 'Saved (guest)');
       }
-      // Hydrate from server if pen exists
       (async()=>{ const existingPen = penInput.value.trim(); if(existingPen){ const { data } = await dbFetchUser(existingPen); if(data && data.mask){ currentMask=data.mask; localStorage.setItem(LAST_MASK_KEY,currentMask); renderPreview(); updateIdentityBadge(); renderMaskGrid(); } }})();
 
       const identityCard = Card('Identity', COPY.identity.subtitle,
@@ -309,7 +366,7 @@
         )
       );
 
-      // Enhanced Ship Console (vibes only)
+      // Ship Console (vibes)
       const led = (color)=>{ const e=h('span',{class:'led'}); e.style.color=color; e.style.background=color; return e; };
       const t1 = h('div',{class:'toggle', onclick:(e)=>e.currentTarget.classList.toggle('on')}, h('div',{class:'knob'}));
       const t2 = h('div',{class:'toggle on', onclick:(e)=>e.currentTarget.classList.toggle('on')}, h('div',{class:'knob'}));
@@ -334,8 +391,6 @@
 
     function Stories(){
       const wrapper = h('div',{}); let items=[]; let viewingPen=null;
-
-      // Composer ONLY (identity moved to Home)
       const pen = localStorage.getItem(LAST_PEN_KEY)||'';
       const penNotice = h('div',{class:'muted'}, pen?`Posting as ${pen}`:'Set your pen & mask on Home');
       const text = h('textarea',{placeholder:COPY.compose.placeholder, maxlength:2000});
@@ -345,18 +400,14 @@
       function cooldownReady(){ const last=Number(localStorage.getItem('prism_last_post_at')||0); return Date.now()-last>=10000; }
       function validate(){ postBtn.disabled = !( (localStorage.getItem(LAST_PEN_KEY)||'').trim() && text.value.trim() && cooldownReady()); }
       text.addEventListener('input',()=>{count.textContent=text.value.length+'/2000'; validate();});
-
       const composeCard = Card(COPY.compose.title,'', h('div',{}, penNotice,
         h('div',{class:'grid',style:'grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px; margin-top:8px'}, text),
         h('div',{class:'row',style:'justify-content:space-between;margin-top:10px'}, count, h('div',{class:'row'}, postBtn, refreshBtn))
       ));
-
-      // Feed
       const feedCard = Card(COPY.feed.title, COPY.feed.subtitle, h('div',{},'Loading…'));
       const listBody = feedCard.lastChild;
 
       function isDup(p,t){ const clean=s=>s.trim().replace(/\s+/g,' '); const now=Date.now(); return items.some(e=> e.pen.trim()===clean(p) && e.text.trim()===clean(t) && (now-new Date(e.created_at).getTime())<120000); }
-
       async function add(){
         if(!cooldownReady()) return alert('Cooling down a few seconds…');
         const p=(localStorage.getItem(LAST_PEN_KEY)||'').trim(), t=text.value.trim(); if(!p||!t) return alert('Set your pen on Home first');
@@ -367,42 +418,32 @@
         localStorage.setItem('prism_last_post_at', String(Date.now()));
         text.value=''; count.textContent='0/2000'; await load(true); postBtn.textContent='Post'; validate();
       }
-
       async function load(spinner){
         if(spinner) listBody.innerHTML='Loading…';
         const resp = viewingPen ? await dbFetchStoriesByPen(viewingPen) : await dbFetchStories();
         if(resp.error){ listBody.textContent='Could not load: '+resp.error.message; return; }
         items = resp.data||[]; renderList();
       }
-
       function renderList(){
         const ul = h('ul',{class:'list'});
         if(items.length===0){ ul.append(h('div',{class:'muted'}, viewingPen?COPY.feed.noneFor(viewingPen):COPY.feed.none)); }
-        const seenPens = new Set();
-
         items.forEach(it=>{
           const li = h('li',{class:'post',style:'margin-top:12px'});
-
-          // Header with pen + mask icon
           const penLink = h('a',{href:'#stories',style:'color:#a5b4fc;font-weight:600'}, esc(it.pen));
           penLink.addEventListener('click',(e)=>{e.preventDefault(); viewingPen=it.pen; load(true);});
           const maskHolder = h('span',{style:'display:inline-flex;align-items:center;margin-left:6px;vertical-align:-2px'});
-
-          // fetch mask for this pen (cached) and inject icon
           getMaskForPen(it.pen).then(m => { maskHolder.innerHTML=''; maskHolder.append(maskSVG(m,16)); });
 
-          const headerLeft = h('div',{}, penLink, maskHolder);
-          const header = h('div',{class:'row',style:'justify-content:space-between'}, headerLeft, h('time',{class:'muted'}, new Date(it.created_at).toLocaleString()));
-
+          const header = h('div',{class:'row',style:'justify-content:space-between'},
+            h('div',{}, penLink, maskHolder),
+            h('time',{class:'muted'}, new Date(it.created_at).toLocaleString())
+          );
           const body = h('div',{style:'margin-top:8px; white-space:pre-wrap'}, esc(it.text));
-
-          // Reactions row — stays inline on mobile
           const reactRow = h('div',{class:'reactions',style:'margin-top:10px'});
           const totalsEl = h('div',{class:'muted',style:'margin-left:6px'});
           ALLOWED_EMOJIS.forEach(em=>{ reactRow.append(h('span',{class:'pill',onclick:()=>toggleReact(it.id, em, totalsEl)}, em)); });
           reactRow.append(totalsEl);
 
-          // Comments
           const commentsWrap = h('div',{style:'margin-top:10px'});
           const commentInput = h('input',{placeholder:'Add a comment…'});
           const commentBtn = h('button',{class:'pill',onclick:()=>sendComment(it.id, commentInput)},'Comment');
@@ -419,7 +460,6 @@
         if(viewingPen){ listBody.append(h('div',{class:'row-wrap',style:'margin-bottom:8px'}, h('span',{class:'muted'},'Viewing '+viewingPen+' — '), h('button',{class:'pill',onclick:()=>{viewingPen=null; load(true);}}, COPY.feed.back))); }
         listBody.append(ul);
       }
-
       async function toggleReact(storyId, emoji, totalsEl){ const pen=(localStorage.getItem(LAST_PEN_KEY)||'').trim(); if(!pen) return alert('Set your Pen Name on Home'); if(totalsEl) totalsEl.textContent='Updating…'; await dbReact(storyId, pen, emoji); await updateReactions(storyId, totalsEl); }
       async function updateReactions(storyId, target){ const { totals } = await dbReactionTotals(storyId); const s = COPY.feed.reactionsLabel(totals); if(target) target.textContent = s; }
       async function sendComment(storyId, inputEl){ const pen=(localStorage.getItem(LAST_PEN_KEY)||'').trim(); if(!pen) return alert('Set your Pen Name on Home'); const txt=inputEl.value.trim(); if(!txt) return; inputEl.disabled=true; const { error } = await dbInsertComment(storyId, pen, txt); if(!error){ inputEl.value=''; loadComments(storyId, document.getElementById('c-'+storyId)); } inputEl.disabled=false; }
@@ -430,126 +470,155 @@
       return wrapper;
     }
 
+    function Gallery(){
+      const wrap = h('div',{}), grid = h('div',{class:'gallery-grid'}), sentinel = h('div',{class:'gallery-sentinel'});
+      const sumInput = h('input',{placeholder:COPY.gallery.sumPH, maxlength:'200'});
+      const file = h('input',{type:'file', accept:'image/*,video/*'});
+      const uploadBtn = h('button',{class:'pill', onclick:doUpload}, COPY.gallery.uploadBtn);
+      const tip = h('div',{class:'muted', style:'font-size:12px;margin-top:6px'}, COPY.gallery.tip);
+
+      let offset = 0, PAGE=18, reachedEnd=false, loading=false;
+
+      const uploader = Card('Post to Gallery','Your pen/mask & timestamp will be shown',
+        h('div',{},
+          h('div',{class:'grid',style:'grid-template-columns:1fr'}, sumInput),
+          h('div',{class:'row-wrap',style:'margin-top:8px'}, file, uploadBtn),
+          tip
+        )
+      );
+
+      const listCard = Card(COPY.gallery.title, COPY.gallery.subtitle, grid);
+
+      async function doUpload(){
+        const pen = (localStorage.getItem(LAST_PEN_KEY)||'').trim();
+        const mask = (localStorage.getItem(LAST_MASK_KEY)||'Grey');
+        if(!pen){ alert('Set your pen name on Home first.'); return; }
+        if(!file.files || !file.files[0]){ alert('Choose a file'); return; }
+        const f = file.files[0];
+        const ext = (f.name.split('.').pop()||'bin').toLowerCase();
+        const path = `${pen}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        // upload to public 'gallery' bucket
+        const up = await supabase.storage.from('gallery').upload(path, f, { upsert:false, contentType: f.type || undefined });
+        if(up.error){ alert('Upload failed: '+up.error.message); return; }
+        const { data:pub } = supabase.storage.from('gallery').getPublicUrl(path);
+        const { error } = await dbInsertGallery({ pen, mask, summary: sumInput.value.trim() || null, url: pub.publicUrl, mime: f.type||null });
+        if(error){ alert('DB insert failed: '+error.message); return; }
+        sumInput.value=''; file.value='';
+        offset=0; reachedEnd=false; grid.innerHTML=''; loadMore(true);
+      }
+
+      async function loadMore(first=false){
+        if(loading || reachedEnd) return; loading=true;
+        const { data, error } = await dbFetchGallery({ offset, limit: PAGE });
+        if(error){
+          grid.innerHTML = setupCardHTML(); // show setup helper if tables missing
+          return;
+        }
+        const rows = data || [];
+        if(rows.length < PAGE) reachedEnd = true;
+        offset += rows.length;
+        rows.forEach(r => grid.append(renderFrame(r)));
+        if(first) observer.observe(sentinel);
+        loading=false;
+      }
+
+      function renderFrame(row){
+        // media element
+        let media;
+        const mt = String(row.mime||'').toLowerCase();
+        if(mt.startsWith('video') || /\.(mp4|webm|mov|m4v)$/i.test(row.url)){
+          media = h('video',{src:row.url, controls:true, playsinline:true});
+        } else if(mt.startsWith('image') || /\.(png|jpg|jpeg|gif|webp|avif)$/i.test(row.url)){
+          media = h('img',{src:row.url, loading:'lazy', alt:row.summary||''});
+        } else {
+          media = h('div',{class:'muted',style:'height:260px;display:grid;place-items:center;border:1px dashed rgba(255,255,255,.2);border-radius:12px'}, 'Preview not supported — download: ', h('a',{href:row.url,style:'color:#c7d2fe'}, 'open'));
+        }
+        const who = h('div',{class:'who'}, maskSVG(row.mask||'Grey',16), esc(row.pen));
+        const meta = h('div',{class:'meta'}, who, h('time',{class:'muted'}, new Date(row.created_at).toLocaleString()), h('div',{class:'sum'}, esc(row.summary||'')));
+        return h('div',{class:'frame'}, media, meta);
+      }
+
+      function setupCardHTML(){
+        const sql = `
+-- Create tables used by Gallery + Tracks
+create table if not exists public.gallery_posts(
+  id uuid primary key default gen_random_uuid(),
+  pen text not null,
+  mask text not null,
+  summary text,
+  url text not null,
+  mime text,
+  created_at timestamptz default now()
+);
+create table if not exists public.tracks(
+  id uuid primary key default gen_random_uuid(),
+  pen text not null,
+  mask text not null,
+  path text not null,
+  created_at timestamptz default now()
+);
+-- Recommended: create public storage buckets named 'gallery' and 'tracks'
+-- Storage > Create bucket > Name: gallery (Public)
+-- Storage > Create bucket > Name: tracks (Public)
+`;
+        const box = h('div',{},
+          h('div',{class:'muted',style:'margin-bottom:8px'}, 'First-time setup: run this SQL once and create two public storage buckets (“gallery”, “tracks”).'),
+          h('button',{class:'pill',onclick:()=>navigator.clipboard.writeText(sql).then(()=>alert('SQL copied!'))}, 'Copy SQL')
+        );
+        grid.innerHTML=''; grid.append(box);
+        return '';
+      }
+
+      const observer = new IntersectionObserver((entries)=>{ if(entries.some(e=>e.isIntersecting)) loadMore(); }, { rootMargin: '800px' });
+
+      wrap.append(uploader, h('div',{style:'height:14px'}), listCard, sentinel);
+      loadMore(true);
+      return wrap;
+    }
+
+    // ====== Fun page (unchanged core; trimmed) ======
     function Fun(){
-      // Eyes
       const eyesWrap = h('div',{class:'eyeShell'}), eyes = h('div',{class:'eyes'});
       function makeEye(){ const eye = h('div',{class:'eye'}), pupil=h('div',{class:'pupil'}); eye.append(pupil); return {eye,pupil}; }
       const e1=makeEye(), e2=makeEye(); eyes.append(e1.eye, e2.eye); eyesWrap.append(eyes);
       let centers=[]; function measure(){ centers=[e1.eye,e2.eye].map(el=>{ const r=el.getBoundingClientRect(); return {x:r.left+r.width/2+scrollX,y:r.top+r.height/2+scrollY};}); }
-      addEventListener('resize', measure); setTimeout(measure,60);
+      addEventListener('resize', measure); setTimeout(m
+
+easure,60);
       function moveEyes(x,y){ if(centers.length<2) measure(); [e1,e2].forEach((E,i)=>{ const c=centers[i]; const dx=x-c.x, dy=y-c.y, ang=Math.atan2(dy,dx), max=10; E.pupil.style.transform=`translate(calc(-50% + ${Math.cos(ang)*max}px), calc(-50% + ${Math.sin(ang)*max}px))`; }); }
       addEventListener('mousemove',(e)=>moveEyes(e.pageX,e.pageY),{passive:true}); addEventListener('touchmove',(e)=>{const t=e.touches[0]; if(t) moveEyes(t.pageX,t.pageY);},{passive:true});
 
-      // Cursor trail toggle
       let trailOn=false; function spawnParticle(x,y){ const p=document.createElement('div'); p.className='particle'; const ang=Math.random()*Math.PI*2, dist=6+Math.random()*10; p.style.setProperty('--x',`${Math.cos(ang)*dist}px`); p.style.setProperty('--y',`${Math.sin(ang)*dist}px`); p.style.left=(x-4)+'px'; p.style.top=(y-4)+'px'; const color=`hsla(${Math.floor(200+Math.random()*80)} 95% 65% / 1)`; p.style.background=color; p.style.boxShadow=`0 0 10px ${color}, 0 0 30px ${color}`; p.style.animation='pop 600ms ease-out forwards'; document.body.appendChild(p); setTimeout(()=>p.remove(),620); }
       function enableTrail(){ if(trailOn) return; trailOn=true; addEventListener('mousemove', trailMove, {passive:true}); addEventListener('touchmove', trailTouch, {passive:true}); }
       function disableTrail(){ trailOn=false; removeEventListener('mousemove', trailMove); removeEventListener('touchmove', trailTouch); }
       function trailMove(e){ spawnParticle(e.pageX,e.pageY); }
       function trailTouch(e){ const t=e.touches[0]; if(t) trailMove({pageX:t.pageX,pageY:t.pageY}); }
-      const trailBtn=h('button',{class:'pill',onclick:()=>{ if(trailOn){ disableTrail(); trailBtn.textContent=COPY.fun.trailEnable; } else { enableTrail(); trailBtn.textContent=COPY.fun.trailDisable; } }}, COPY.fun.trailEnable);
+      const trailBtn=h('button',{class:'pill',onclick:()=>{ if(trailOn){ disableTrail(); trailBtn.textContent='Enable trail'; } else { enableTrail(); trailBtn.textContent='Disable trail'; } }}, 'Enable trail');
 
-      // Quotes (same as before, trimmed for brevity)
-      const QUOTES = {
-        jokes:[
-          "I told my computer I needed a break—it said it was going to sleep anyway.",
-          "There are 10 types of people: those who understand binary and those who don’t.",
-          "My code doesn’t have bugs; it just develops random features.",
-          "I would tell you a UDP joke, but you might not get it.",
-          "Why did the developer go broke? Because they used up all their cache.",
-          "404: Joke not found.",
-          "I changed my password to ‘incorrect’ so when I forget it, the computer says: ‘Your password is incorrect.’",
-          "My Wi-Fi is like my spouse: I’m only happy when it connects.",
-          "Debugging: Removing needles from a haystack.",
-          "I told a joke about NAT. It didn’t translate.",
-          "Commit early, commit often, regret always.",
-          "It works on my machine.",
-          "I’d explain it with recursion, but we’ve been here before.",
-          "Keyboard not found. Press F1 to continue.",
-          "I prefer my coffee like my code: strong and not in production.",
-          "The cloud is just someone else’s computer.",
-          "To understand recursion, see: recursion.",
-          "My AI wrote this joke. Blame it, not me.",
-          "Tabs vs spaces? I use teleportation.",
-          "I named my dog ‘Git’. Now I can say ‘Git fetch’.",
-          "Old programmers never die; they just can’t C as well.",
-          "Real programmers count from 0.",
-          "Cache rules everything around me."
-        ],
-        scifi:[
-          "“Do. Or do not. There is no try.” — Yoda",
-          "“I’m sorry, Dave. I’m afraid I can’t do that.” — HAL 9000",
-          "“The cosmos is within us. We are made of star-stuff.” — Carl Sagan",
-          "“Live long and prosper.” — Spock",
-          "“Fear is the mind-killer.” — Frank Herbert",
-          "“The spice must flow.” — Frank Herbert",
-          "“Roads? Where we’re going, we don’t need roads.”",
-          "“Reality is frequently inaccurate.” — Douglas Adams",
-          "“Don’t panic.” — Douglas Adams",
-          "“Resistance is futile.”",
-          "“That’s no moon.”",
-          "“The stars look very different today.”",
-          "“Hope is like the sun.” — Leia Organa"
-        ],
-        fortune:[
-          "A new idea will transport you to unexpected places.",
-          "Your curiosity will open a door you didn’t know existed.",
-          "Good news will arrive from a great distance.",
-          "The next small step is the big one.",
-          "You will find clarity in a quiet moment.",
-          "A surprising ally appears soon.",
-          "Your patience will pay interest.",
-          "The answer arrives when you’re not looking.",
-          "Ask twice, act once.",
-          "You are one tweak away from delight.",
-          "A forgotten note becomes useful again.",
-          "Let the simple version ship first.",
-          "An old constraint becomes your superpower.",
-          "You will teach what you just learned.",
-          "Momentum loves company.",
-          "Someone admires your persistence.",
-          "Your map is not the terrain; keep walking.",
-          "Take the scenic route this time.",
-          "The signal is stronger than you think.",
-          "You will sleep well after finishing one small task.",
-          "Your future self thanks you for backing up."
-        ],
-        philosophy:[
-          "“The unexamined life is not worth living.” — Socrates",
-          "“We are what we repeatedly do.” — Aristotle",
-          "“Man is condemned to be free.” — Sartre",
-          "“I think, therefore I am.” — Descartes",
-          "“He who has a why to live can bear almost any how.” — Nietzsche",
-          "“No man ever steps in the same river twice.” — Heraclitus",
-          "“The limits of my language are the limits of my world.” — Wittgenstein",
-          "“Simplicity is the ultimate sophistication.” — da Vinci",
-          "“You become what you pay attention to.”"
-        ]
-      };
+      const QUOTES = { jokes:["I told my computer I needed a break—it said it was going to sleep anyway.","There are 10 types of people: those who understand binary and those who don’t.","My code doesn’t have bugs; it just develops random features."], scifi:["“Do. Or do not. There is no try.” — Yoda","“I’m sorry, Dave. I’m afraid I can’t do that.” — HAL 9000","“The cosmos is within us. We are made of star-stuff.” — Carl Sagan"], fortune:["A new idea will transport you to unexpected places.","Your curiosity will open a door you didn’t know existed.","Good news will arrive from a great distance."], philosophy:["“The unexamined life is not worth living.” — Socrates","“We are what we repeatedly do.” — Aristotle","“Man is condemned to be free.” — Sartre"] };
       const select = h('select',{}, ...['jokes','scifi','fortune','philosophy','surprise'].map(k=>h('option',{value:k},k)));
       const out = h('div',{class:'card',style:'margin-top:10px;padding:12px;font-size:15px'}, 'Click “Generate”.');
-      const gen = h('button',{class:'pill',onclick:()=>{ const cat=select.value; const pool=(cat==='surprise')?[...QUOTES.jokes,...QUOTES.scifi,...QUOTES.fortune,...QUOTES.philosophy]:QUOTES[cat]; out.textContent=choose(pool); }}, COPY.fun.quotesButton);
+      const gen = h('button',{class:'pill',onclick:()=>{ const cat=select.value; const pool=(cat==='surprise')?[...QUOTES.jokes,...QUOTES.scifi,...QUOTES.fortune,...QUOTES.philosophy]:QUOTES[cat]; out.textContent=choose(pool); }}, 'Generate');
 
-      // Blob
       const blob = h('div',{style:'width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.5),rgba(99,102,241,.6) 35%,rgba(2,6,23,.9) 70%);border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px rgba(99,102,241,.35)'});
       const colorSel = h('select',{},...['indigo','pink','green','cyan'].map(c=>h('option',{value:c},c)));
       const sizeSel = h('input',{type:'range',min:'120',max:'220',value:'160'});
       function setBlobColor(v){ const m={indigo:'rgba(99,102,241,.6)',pink:'rgba(236,72,153,.6)',green:'rgba(34,197,94,.6)',cyan:'rgba(34,211,238,.6)'}[v]||'rgba(99,102,241,.6)'; blob.style.background=`radial-gradient(circle at 40% 35%,rgba(255,255,255,.5),${m} 35%,rgba(2,6,23,.9) 70%)`; blob.style.boxShadow=`inset 0 20px 60px rgba(0,0,0,.45), 0 10px 50px ${m}`; }
       colorSel.oninput=(e)=>setBlobColor(e.target.value); sizeSel.oninput=(e)=>{ blob.style.width=blob.style.height=e.target.value+'px'; }; setBlobColor('indigo');
 
-      // Dice d6
       const diceOut = h('div',{class:'card',style:'margin-top:10px;padding:12px;font-size:22px;font-weight:700;text-align:center'}, '—');
       const diceBtn = h('button',{class:'pill',onclick:()=>{ diceOut.textContent = String(1 + Math.floor(Math.random()*6)); }}, 'Roll d6');
 
       return h('div',{},
-        Card(COPY.fun.eyesTitle, COPY.fun.eyesSubtitle, eyesWrap),
+        Card('The Eyes','They follow your cursor…', eyesWrap),
         h('div',{style:'height:14px'}),
-        Card(COPY.fun.trailTitle, COPY.fun.trailSubtitle, h('div',{}, trailBtn)),
+        Card('Cursor Trail','Toggle neon particles following your cursor', h('div',{}, trailBtn)),
         h('div',{style:'height:14px'}),
-        Card(COPY.fun.quotesTitle, COPY.fun.quotesSubtitle, h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)),
+        Card('Random Quote','Jokes, sci-fi, fortunes, philosophy', h('div',{}, h('div',{}, select), h('div',{style:'margin-top:10px'}, gen), out)),
         h('div',{style:'height:14px'}),
-        Card(COPY.fun.blobTitle, COPY.fun.blobSubtitle, h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{}, COPY.fun.blobColor, ' ', colorSel), h('label',{}, COPY.fun.blobSize, ' ', sizeSel)))),
+        Card('Pet Blob','Customize color & size', h('div',{style:'display:grid;place-items:center;gap:12px'}, blob, h('div',{class:'row-wrap'}, h('label',{}, 'Color: ', colorSel), h('label',{}, 'Size: ', sizeSel)))),
         h('div',{style:'height:14px'}),
-        Card(COPY.fun.diceTitle, COPY.fun.diceSubtitle, h('div',{}, diceBtn, diceOut))
+        Card('Dice','Roll a d6', h('div',{}, diceBtn, diceOut))
       );
     }
 
@@ -559,6 +628,7 @@
       const app = document.getElementById('app'); app.innerHTML='';
       const hash = location.hash;
       if(hash.startsWith('#stories')) app.append(Stories());
+      else if(hash.startsWith('#gallery')) app.append(Gallery());
       else if(hash.startsWith('#fun')) app.append(Fun());
       else app.append(Home());
       setActiveNav(); updateIdentityBadge();
@@ -567,6 +637,72 @@
     window.addEventListener('hashchange', route);
     window.addEventListener('DOMContentLoaded', route);
     route();
+
+    // ====== Jukebox logic ======
+    const demoTracks = [
+      { pen:"PRISM", mask:"Space Wizard", path:"https://cdn.pixabay.com/download/audio/2022/02/23/audio_4d8dd6d2b2.mp3?filename=stargazer-189356.mp3" },
+      { pen:"PRISM", mask:"Retro Martian", path:"https://cdn.pixabay.com/download/audio/2022/03/15/audio_1f105c0be5.mp3?filename=space-ambient-110241.mp3" }
+    ];
+    (async function initJukebox(){
+      const audio = document.getElementById('jbAudio');
+      const play = document.getElementById('jbPlay');
+      const prev = document.getElementById('jbPrev');
+      const next = document.getElementById('jbNext');
+      const scrub= document.getElementById('jbScrub');
+      const time = document.getElementById('jbTime');
+      const screen = document.getElementById('jbScreen').querySelector('.name');
+      const maskIcon = document.getElementById('jbMaskIcon');
+      const file = document.getElementById('jbFile');
+
+      let list = [];
+      const { data, error } = await dbFetchTracks();
+      if(!error && data && data.length) list = data;
+      else list = demoTracks;
+
+      let i = 0;
+      function setScreen(pen, mask){ maskIcon.innerHTML=''; maskIcon.append(maskSVG(mask||'Grey',16)); screen.textContent = `${pen} (${mask})`; }
+      function load(k){
+        i = (k + list.length) % list.length;
+        const item = list[i];
+        let url = item.path;
+        if(!/^https?:/.test(url)){ // storage path -> public url
+          const { data } = supabase.storage.from('tracks').getPublicUrl(url);
+          url = data.publicUrl;
+        }
+        audio.src = url;
+        setScreen(item.pen || 'Unknown', item.mask || 'Grey');
+        audio.play().catch(()=>{}); play.innerHTML = '<span class="jb-glyph">⏸</span>';
+      }
+      function fmt(s){ s = Math.max(0, Math.floor(s||0)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+      play.onclick = ()=>{ if(audio.paused){ audio.play(); play.innerHTML='<span class="jb-glyph">⏸</span>'; } else { audio.pause(); play.innerHTML='<span class="jb-glyph">▶</span>'; } };
+      prev.onclick = ()=> load(i-1);
+      next.onclick = ()=> load(i+1);
+      audio.addEventListener('loadedmetadata', ()=>{ scrub.max = Math.floor(audio.duration||0); time.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; });
+      audio.addEventListener('timeupdate', ()=>{ scrub.value = Math.floor(audio.currentTime||0); time.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; });
+      scrub.oninput = ()=> audio.currentTime = Number(scrub.value||0);
+      audio.addEventListener('ended', ()=> load(i+1));
+
+      // Upload new track
+      file.addEventListener('change', async ()=>{
+        const f = file.files[0]; if(!f) return;
+        const pen = (localStorage.getItem(LAST_PEN_KEY)||'').trim() || 'Guest';
+        const mask = (localStorage.getItem(LAST_MASK_KEY)||'Grey');
+        const ext = (f.name.split('.').pop()||'mp3').toLowerCase();
+        const path = `${pen}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const up = await supabase.storage.from('tracks').upload(path, f, { upsert:false, contentType:f.type||undefined });
+        if(up.error){ alert('Track upload failed: '+up.error.message); return; }
+        const { error } = await dbInsertTrack({ pen, mask, path });
+        if(error){ alert('DB insert failed: '+error.message); return; }
+        list.push({ pen, mask, path });
+        load(list.length-1);
+        file.value='';
+      });
+
+      // start on first item (requires user gesture on mobile)
+      setScreen('PRISM FM','Forged in the Void');
+    })();
+
   </script>
 </body>
 </html>
