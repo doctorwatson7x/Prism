@@ -2,7 +2,7 @@
 
 Prism is a single-page, alien-sleek web app featuring:
 
-- Identity (pen name + mask) with optional reservation
+- Home (pen name + mask) with optional reservation
 - Stories feed with comments and emoji reactions
 - Infinite Gallery with uploads via Supabase Storage
 - Sticky Jukebox player with upload support

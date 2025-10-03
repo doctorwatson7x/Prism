@@ -67,25 +67,20 @@
 
       <main id="app" style="padding-top: 24px"></main>
 
-      <footer
-        class="row"
-        style="justify-content: space-between; margin-top: 24px"
-      >
-        <div class="foot-top">© <span id="year"></span> Prism</div>
-        <div class="foot-bottom muted">
-          Forged in the void | Alien-sleek starter
+      <footer class="row" style="justify-content: center; margin-top: 24px">
+        <div class="muted">
+          2025 Prism - Forged in the Void - Alien-sleek Starter - v0.2.9b
         </div>
       </footer>
     </div>
 
-    <div class="version">v0.2.9a</div>
+    <!-- <div class="version">v0.2.9b</div> -->
 
     <!-- Jukebox (sticky) -->
     <div class="jukebox" id="jukebox">
       <div class="jb-inner">
         <div class="jb-screen" id="jbScreen">
-          <span id="jbMaskIcon"></span
-          ><span class="name">PRISM FM · Tap Play</span>
+          <span id="jbMaskIcon"></span><span class="name"></span>
         </div>
         <button class="jb-btn" id="jbPrev" title="Prev">
           <span class="jb-glyph">⏮</span>
@@ -109,9 +104,19 @@
         </div>
         <label class="jb-btn jb-upload" title="Upload track">
           <input id="jbFile" type="file" accept="audio/*" hidden />
-          <span class="jb-glyph">⬆</span>
+          <span class="jb-glyph">☁︎</span>
+          <span class="jb-label">Add</span>
         </label>
         <audio id="jbAudio" preload="metadata"></audio>
+      </div>
+      <div class="jb-panel" id="jbPanel" hidden>
+        <div class="jb-panel-head">
+          <span class="jb-panel-title">Playlist</span>
+          <button class="jb-btn jb-close" id="jbClose" title="Close">
+            <span class="jb-glyph">✕</span>
+          </button>
+        </div>
+        <div class="jb-list" id="jbList"></div>
       </div>
     </div>
 

@@ -1,5 +1,6 @@
 // ====== CONFIG ======
-document.getElementById("year").textContent = new Date().getFullYear();
+const yearElement = document.getElementById("year");
+if (yearElement) yearElement.textContent = new Date().getFullYear();
 const supabase = window.supabaseClient;
 
 // ====== COPY ======
@@ -19,10 +20,10 @@ const COPY = {
   },
   identity: {
     title: "Identity",
-    subtitle: "Password optional — use it to reserve your pen name.",
+    subtitle: "Use a password to lock your pen. You can sign back in anytime.",
     penPlaceholder: "Pen name",
     pwPlaceholder: "Password (optional to reserve pen)",
-    saveBtn: "Save / Reserve",
+    saveBtn: "Save",
   },
   compose: {
     title: "Write a story",
@@ -46,15 +47,22 @@ const COPY = {
     trailSubtitle: "Toggle neon particles following your cursor",
     trailEnable: "Enable trail",
     trailDisable: "Disable trail",
+    trailIntensity: "Intensity",
+    trailMemory: "Memory",
     quotesTitle: "Random Quote",
     quotesSubtitle: "Jokes, sci-fi, fortunes, philosophy",
     quotesButton: "Generate",
+    quotesCopy: "Copy",
     blobTitle: "Pet Blob",
     blobSubtitle: "Customize color & size",
     blobColor: "Color:",
     blobSize: "Size:",
     diceTitle: "Dice",
-    diceSubtitle: "Roll a d6",
+    diceSubtitle: "Roll a d6 or d20",
+    constellationsTitle: "Constellation Drawer",
+    constellationsSubtitle: "Sketch stars; lines fade like cosmic trails",
+    synthTitle: "Ambient Synth Pad",
+    synthSubtitle: "Tap neon pads to weave a spacey chord",
   },
   gallery: {
     title: "Gallery",
@@ -128,6 +136,7 @@ function Card(title, subtitle, body) {
 }
 
 // ====== Masks & Identity ======
+const LAST_ID_KEY = "prism_last_id";
 const LAST_PEN_KEY = "prism_last_pen";
 const LAST_MASK_KEY = "prism_last_mask";
 const MASKS = [
@@ -147,6 +156,67 @@ const MASKS = [
   "Solar Phantom",
   "Void Wraith",
 ];
+
+// ====== Identity Manager ======
+class IdentityManager {
+  constructor() {
+    this.id = localStorage.getItem(LAST_ID_KEY) || "";
+    this.pen = localStorage.getItem(LAST_PEN_KEY) || "";
+    this.mask = localStorage.getItem(LAST_MASK_KEY) || "Grey";
+    this.listeners = [];
+  }
+
+  update(id, pen, mask) {
+    this.id = id;
+    this.pen = pen;
+    this.mask = mask;
+
+    localStorage.setItem(LAST_ID_KEY, id);
+    localStorage.setItem(LAST_PEN_KEY, pen);
+    localStorage.setItem(LAST_MASK_KEY, mask);
+    this.notifyListeners();
+  }
+
+  clear() {
+    this.id = "";
+    this.pen = "";
+    this.mask = "Grey";
+    localStorage.removeItem(LAST_ID_KEY);
+    localStorage.removeItem(LAST_PEN_KEY);
+    localStorage.setItem(LAST_MASK_KEY, this.mask);
+    this.notifyListeners();
+  }
+
+  notifyListeners() {
+    this.listeners.forEach((callback) => callback(this.pen, this.mask));
+  }
+
+  subscribe(callback) {
+    this.listeners.push(callback);
+    return () => {
+      const index = this.listeners.indexOf(callback);
+      if (index > -1) this.listeners.splice(index, 1);
+    };
+  }
+
+  getId() {
+    return this.id;
+  }
+
+  getPen() {
+    return this.pen;
+  }
+  getMask() {
+    return this.mask;
+  }
+}
+
+const identity = new IdentityManager();
+identity.subscribe(() => {
+  try {
+    renderIdentityBadge();
+  } catch (e) {}
+});
 
 function maskSVG(type, size = 24) {
   const svg = (inner) => {
@@ -229,17 +299,217 @@ function maskSVG(type, size = 24) {
   }
 }
 
-function updateIdentityBadge() {
-  const el = document.getElementById("identityBadge");
-  const pen = localStorage.getItem(LAST_PEN_KEY) || "Guest";
-  const mask = localStorage.getItem(LAST_MASK_KEY) || "Grey";
-  el.innerHTML = "";
-  el.append(
-    maskSVG(mask, 18),
-    h("span", {}, pen),
-    h("span", { class: "muted" }, `(${mask})`)
-  );
+// ====== Identity Dropdown ======
+function createMaskSelector(currentMask, onChange) {
+  const selector = h("select", {
+    value: currentMask,
+    onchange: (e) => onChange(e.target.value),
+    style:
+      "background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:#c7d2fe;padding:4px 8px;border-radius:6px;font-size:12px;",
+  });
+
+  // Group masks by category for better UX
+  const categories = {
+    Classic: ["Grey", "Nordic", "Reptilian"],
+    Alien: [
+      "Insectoid",
+      "Cyborg Alien",
+      "Retro Martian",
+      "Roswell Cartoon",
+      "Xeno-Beast",
+    ],
+    Mystical: ["Space Wizard", "Cosmic Jellyfish", "Nebula Face"],
+    Dark: ["Crystal Skull", "Void Wraith", "Solar Phantom", "Obsidian Fox"],
+  };
+
+  Object.entries(categories).forEach(([category, masks]) => {
+    const optgroup = h("optgroup", { label: category });
+    masks.forEach((mask) => {
+      optgroup.append(h("option", { value: mask }, mask));
+    });
+    selector.append(optgroup);
+  });
+
+  setTimeout(() => {
+    const desired = currentMask || identity.getMask();
+    if (
+      Array.from(selector.querySelectorAll("option")).some(
+        (o) => o.value === desired
+      )
+    ) {
+      selector.value = desired;
+    }
+  }, 0);
+
+  return selector;
 }
+
+function createIdentityDropdown() {
+  const container = h("div", { class: "identity-dropdown-container" });
+  const dropdown = h("div", {
+    class: "identity-dropdown",
+    style: "display:none;",
+  });
+
+  const trigger = h("button", {
+    class: "identity-trigger",
+    onclick: () => {
+      dropdown.style.display =
+        dropdown.style.display === "none" ? "block" : "none";
+    },
+  });
+
+  function updateTrigger() {
+    const pen = identity.getPen() || "Guest";
+    const mask = identity.getMask();
+    trigger.innerHTML = "";
+    trigger.append(
+      maskSVG(mask, 18),
+      h("span", { style: "margin:0 6px" }, pen),
+      h("span", { class: "muted", style: "font-size:12px" }, `(${mask})`),
+      h("span", { style: "margin-left:6px;font-size:10px" }, "▼")
+    );
+  }
+
+  // Quick mask switcher
+  const quickMaskSelector = createMaskSelector(
+    identity.getMask(),
+    (newMask) => {
+      identity.update(identity.getId(), identity.getPen(), newMask);
+      updateTrigger();
+      renderIdentityBadge();
+    }
+  );
+
+  // Quick pen edit
+  const quickPenInput = h("input", {
+    placeholder: "Pen name",
+    value: identity.getPen(),
+    style:
+      "background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);color:#c7d2fe;padding:4px 8px;border-radius:6px;font-size:12px;margin-right:6px;",
+    onchange: (e) => {
+      identity.update(
+        identity.getId(),
+        e.target.value.trim(),
+        identity.getMask()
+      );
+      updateTrigger();
+      updateIdentityBadge();
+    },
+  });
+
+  const saveBtn = h(
+    "button",
+    {
+      class: "pill",
+      style: "padding:6px 14px;font-size:12px;",
+      onclick: async () => {
+        const userId = identity.getId();
+        const pen = identity.getPen();
+        const mask = identity.getMask();
+        if (!pen) return alert("Pen name required");
+        try {
+          const { data, error } = await dbUpsertUser({ id: userId, pen, mask });
+          if (error) return alert("Could not update: " + error.message);
+          const user = data[0];
+          identity.update(user.id, user.pen, user.mask);
+          alert("Identity saved ✅");
+        } catch (e) {
+          alert("Failed to save: " + e.message);
+        }
+      },
+    },
+    "Save"
+  );
+
+  dropdown.append(
+    h(
+      "div",
+      { style: "padding:8px;border-bottom:1px solid rgba(99,102,241,.2)" },
+      h(
+        "div",
+        { style: "margin-bottom:6px;font-size:12px;color:#c7d2fe" },
+        "Quick Edit:"
+      ),
+      h(
+        "div",
+        { style: "display:flex;gap:6px;align-items:center" },
+        quickPenInput,
+        quickMaskSelector
+      )
+    ),
+    h(
+      "div",
+      {
+        style:
+          "padding:8px;border-top:1px solid rgba(99,102,241,.2);display:flex;gap:6px;align-items:center",
+      },
+      h(
+        "button",
+        {
+          class: "pill",
+          style: "padding:6px 14px",
+          onclick: () => {
+            identity.clear();
+            updateTrigger();
+            updateIdentityBadge();
+            dropdown.style.display = "none";
+          },
+        },
+        "Clear identity"
+      ),
+      saveBtn
+    ),
+    h(
+      "div",
+      { style: "padding:8px" },
+      h(
+        "a",
+        {
+          href: "#home",
+          style: "color:#a5b4fc;font-size:12px;text-decoration:none",
+          onclick: () => (dropdown.style.display = "none"),
+        },
+        "Full Setup →"
+      )
+    )
+  );
+
+  updateTrigger();
+
+  container.append(trigger, dropdown);
+  return container;
+}
+
+function renderIdentityBadge() {
+  const el = document.getElementById("identityBadge");
+  if (!el) return;
+  const pen = identity.getPen() || "Guest";
+  const mask = identity.getMask();
+  const isHome = (location.hash || "#home").startsWith("#home");
+  el.innerHTML = "";
+  el.className = `id-badge ${pen === "Guest" ? "guest" : "registered"}`;
+
+  if (isHome) {
+    const btn = h("button", {
+      class: "identity-trigger",
+      title: "Identity (set up on Home)",
+      onclick: () => (location.hash = "#home"),
+    });
+    btn.append(
+      maskSVG(mask, 18),
+      h("span", { style: "margin:0 6px" }, pen || "Guest"),
+      h("span", { class: "muted", style: "font-size:12px" }, `(${mask})`)
+    );
+    el.append(btn);
+  } else {
+    const dropdown = createIdentityDropdown();
+    el.appendChild(dropdown);
+  }
+}
+
+// Back-compat alias
+const updateIdentityBadge = renderIdentityBadge;
 
 // ====== DB ops ======
 const ALLOWED_EMOJIS = ["👍", "😂", "🔥", "👽"];
@@ -296,14 +566,32 @@ async function dbReactionTotals(story_id) {
 async function dbFetchUser(pen) {
   return await supabase
     .from("users")
-    .select("pen, mask")
+    .select("pen, mask, password_hash")
     .eq("pen", pen)
     .maybeSingle();
 }
-async function dbUpsertUser(pen, mask, password_hash) {
+
+async function dbFetchUserByPen(pen) {
   return await supabase
     .from("users")
-    .upsert([{ pen, mask, password_hash }], { onConflict: "pen" });
+    .select("id, pen, mask, password_hash")
+    .eq("pen", pen)
+    .maybeSingle();
+}
+
+async function dbFetchUserById(id) {
+  return await supabase
+    .from("users")
+    .select("id, pen, mask, password_hash")
+    .eq("id", id)
+    .maybeSingle();
+}
+
+async function dbUpsertUser(user) {
+  return await supabase
+    .from("users")
+    .upsert([user], { onConflict: "id" })
+    .select();
 }
 
 // Gallery tables
@@ -345,56 +633,77 @@ async function getMaskForPen(pen) {
 
 // ====== Pages ======
 function Home() {
-  const grid = h("section", { class: "grid" });
-  grid.append(
-    Card(
-      COPY.home.storiesTitle,
-      COPY.home.storiesSubtitle,
-      h(
-        "div",
-        {},
-        h(
-          "a",
-          { href: "#stories", style: "color:#c7d2fe" },
-          COPY.home.storiesCta
-        )
-      )
-    ),
-    Card(
-      "Gallery",
-      "Endless neon frames",
-      h(
-        "div",
-        {},
-        h("a", { href: "#gallery", style: "color:#c7d2fe" }, "Go to Gallery →")
-      )
-    ),
-    Card(
-      COPY.home.funTitle,
-      COPY.home.funSubtitle,
-      h(
-        "div",
-        {},
-        h("a", { href: "#fun", style: "color:#c7d2fe" }, COPY.home.funCta)
-      )
-    )
-  );
-
   // Identity on Home
   const penInput = h("input", {
     placeholder: COPY.identity.penPlaceholder,
     maxlength: "40",
-    value: localStorage.getItem(LAST_PEN_KEY) || "",
+    value: identity.getPen(),
   });
   const pw = h("input", {
     type: "password",
     placeholder: COPY.identity.pwPlaceholder,
   });
-  let currentMask = localStorage.getItem(LAST_MASK_KEY) || "Grey";
+
+  const suggestBtn = h(
+    "button",
+    {
+      class: "pill",
+      onclick: () => {
+        const animals = [
+          "Nebula",
+          "Quasar",
+          "Photon",
+          "Comet",
+          "Meteor",
+          "Aurora",
+          "Zenith",
+          "Orbit",
+          "Nova",
+          "Eclipse",
+        ];
+        const nouns = [
+          "Scribe",
+          "Seeker",
+          "Wanderer",
+          "Voyager",
+          "Echo",
+          "Specter",
+          "Weaver",
+          "Drifter",
+          "Cipher",
+          "Lumen",
+        ];
+        const suffix = Math.random().toString(36).slice(2, 5);
+        penInput.value = `${choose(animals)}${choose(nouns)}_${suffix}`;
+      },
+    },
+    "Suggest"
+  );
+
+  const clearBtn = h(
+    "button",
+    {
+      class: "pill",
+      onclick: () => {
+        identity.clear();
+        penInput.value = "";
+        pw.value = "";
+        currentMask = identity.getMask();
+        renderPreview();
+        renderMaskGrid();
+        renderIdentityBadge();
+        updateButtons();
+      },
+    },
+    "Clear identity"
+  );
+
+  let currentMask = identity.getMask();
   const maskPreview = h("div", {
     class: "row",
     style: "gap:12px;align-items:center",
   });
+
   function renderPreview() {
     maskPreview.innerHTML = "";
     maskPreview.append(
@@ -431,10 +740,23 @@ function Home() {
     });
   }
   renderMaskGrid();
+
+  function updateButtons() {
+    const signedIn = !!(identity.getPen() || "").trim();
+    suggestBtn.style.display = signedIn ? "none" : "inline-flex";
+    clearBtn.style.display = signedIn ? "inline-flex" : "none";
+  }
+  updateButtons();
+
   async function reserve() {
     const p = penInput.value.trim();
     if (!p) return alert("Enter a pen name");
+
+    const currentPen = (identity.getPen() || "").trim();
+    const signedIn = !!currentPen;
     const password = pw.value.trim() || null;
+
+    // hash password if provided
     const enc = (s) =>
       crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then((b) =>
         Array.from(new Uint8Array(b))
@@ -442,22 +764,123 @@ function Home() {
           .join("")
       );
     const password_hash = password ? await enc(password) : null;
-    const { error } = await dbUpsertUser(p, currentMask, password_hash);
-    if (error) return alert("Could not reserve: " + error.message);
-    localStorage.setItem(LAST_PEN_KEY, p);
-    localStorage.setItem(LAST_MASK_KEY, currentMask);
-    updateIdentityBadge();
-    alert(password ? "Reserved! 🔒" : "Saved (guest)");
+
+    const { data: foundUser, error: fetchErr } = await dbFetchUserByPen(p);
+
+    // Signed-in updates
+    if (signedIn) {
+      const userId = identity.getId();
+      if (p !== currentPen) {
+        if (fetchErr) return alert("Could not check pen availability.");
+        if (foundUser && foundUser.password_hash)
+          return alert("That pen is reserved.");
+
+        // fetch current user to keep existing hash
+        const { data: curData } = await dbFetchUserById(userId);
+        const keepHash = (curData && curData.password_hash) || null;
+
+        const { error } = await dbUpsertUser({
+          id: userId,
+          pen: p,
+          mask: currentMask,
+          password_hash: keepHash,
+        });
+        if (error) return alert("Could not update pen: " + error.message);
+
+        identity.update(userId, p, currentMask);
+        renderIdentityBadge();
+        updateButtons();
+        return alert("Pen updated ✅");
+      } else {
+        // same pen, just update mask/hash
+        const keepHash = (foundUser && foundUser.password_hash) || null;
+        const { error } = await dbUpsertUser({
+          id: userId,
+          pen: p,
+          mask: currentMask,
+          password_hash: keepHash,
+        });
+        if (error) return alert("Could not save: " + error.message);
+
+        identity.update(userId, p, currentMask);
+        renderIdentityBadge();
+        updateButtons();
+        return alert("Saved ✅");
+      }
+    }
+
+    //  Not signed in
+    if (fetchErr) return alert("Error fetching user: " + fetchErr.message);
+
+    if (!foundUser) {
+      // New account
+      const { data, error } = await dbUpsertUser({
+        pen: p,
+        mask: currentMask,
+        password_hash,
+      });
+      if (error) return alert("Could not create: " + error.message);
+
+      const user = data[0];
+      identity.update(user.id, user.pen, user.mask);
+      renderIdentityBadge();
+      updateButtons();
+      return alert(password_hash ? "Created & signed in 🔒" : "Created");
+    }
+
+    // Existing user
+    if (foundUser.password_hash) {
+      // Locked account
+      if (!password_hash)
+        return alert("This pen is locked. Enter password to sign in.");
+      if (password_hash !== foundUser.password_hash)
+        return alert("Incorrect password for this pen.");
+
+      // login success
+      currentMask = foundUser.mask || currentMask;
+      identity.update(foundUser.id, foundUser.pen, currentMask);
+      renderPreview();
+      renderMaskGrid();
+      renderIdentityBadge();
+      updateButtons();
+      return alert("Signed in ✅");
+    } else {
+      // Unlocked account
+      const nextMask = foundUser.mask || currentMask;
+      const nextHash = foundUser.password_hash || password_hash || null;
+
+      if (nextHash && nextHash !== foundUser.password_hash) {
+        await dbUpsertUser({
+          id: foundUser.id,
+          pen: foundUser.pen,
+          mask: nextMask,
+          password_hash: nextHash,
+        });
+      }
+
+      currentMask = nextMask;
+      identity.update(foundUser.id, foundUser.pen, currentMask);
+      renderPreview();
+      renderMaskGrid();
+      renderIdentityBadge();
+      updateButtons();
+      return alert(
+        nextHash && nextHash !== foundUser.password_hash
+          ? "Locked ✅"
+          : "Signed in ✅"
+      );
+    }
   }
+
   (async () => {
     const existingPen = penInput.value.trim();
     if (existingPen) {
-      const { data } = await dbFetchUser(existingPen);
-      if (data && data.mask) {
-        currentMask = data.mask;
-        localStorage.setItem(LAST_MASK_KEY, currentMask);
+      const { data } = await dbFetchUserByPen(existingPen);
+      if (data) {
+        currentMask = identity.getMask() || data.mask || "Grey";
+        identity.update(data.id, data.pen, currentMask);
         renderPreview();
-        updateIdentityBadge();
+        renderIdentityBadge();
         renderMaskGrid();
       }
     }
@@ -489,7 +912,9 @@ function Home() {
       h(
         "div",
         { class: "row", style: "margin-top:12px" },
-        h("button", { class: "pill", onclick: reserve }, COPY.identity.saveBtn)
+        h("button", { class: "pill", onclick: reserve }, COPY.identity.saveBtn),
+        suggestBtn,
+        clearBtn
       )
     )
   );
@@ -580,21 +1005,13 @@ function Home() {
     )
   );
 
-  const about = Card(
-    COPY.home.aboutTitle,
-    "",
-    h("p", { class: "muted", html: COPY.home.aboutBody })
-  );
   return h(
     "div",
     {},
-    grid,
-    h("div", { style: "height:12px" }),
     identityCard,
     h("div", { style: "height:12px" }),
     cockpit,
-    h("div", { style: "height:12px" }),
-    about
+    h("div", { style: "height:12px" })
   );
 }
 
@@ -602,7 +1019,7 @@ function Stories() {
   const wrapper = h("div", {});
   let items = [];
   let viewingPen = null;
-  const pen = localStorage.getItem(LAST_PEN_KEY) || "";
+  const pen = identity.getPen() || "";
   const penNotice = h(
     "div",
     { class: "muted" },
@@ -629,7 +1046,7 @@ function Stories() {
   }
   function validate() {
     postBtn.disabled = !(
-      (localStorage.getItem(LAST_PEN_KEY) || "").trim() &&
+      identity.getPen().trim() &&
       text.value.trim() &&
       cooldownReady()
     );
@@ -684,7 +1101,7 @@ function Stories() {
   }
   async function add() {
     if (!cooldownReady()) return alert("Cooling down a few seconds…");
-    const p = (localStorage.getItem(LAST_PEN_KEY) || "").trim(),
+    const p = identity.getPen().trim(),
       t = text.value.trim();
     if (!p || !t) return alert("Set your pen on Home first");
     if (isDup(p, t)) return alert("Looks like you just posted that.");
@@ -830,7 +1247,7 @@ function Stories() {
     listBody.append(ul);
   }
   async function toggleReact(storyId, emoji, totalsEl) {
-    const pen = (localStorage.getItem(LAST_PEN_KEY) || "").trim();
+    const pen = identity.getPen().trim();
     if (!pen) return alert("Set your Pen Name on Home");
     if (totalsEl) totalsEl.textContent = "Updating…";
     await dbReact(storyId, pen, emoji);
@@ -842,7 +1259,7 @@ function Stories() {
     if (target) target.textContent = s;
   }
   async function sendComment(storyId, inputEl) {
-    const pen = (localStorage.getItem(LAST_PEN_KEY) || "").trim();
+    const pen = identity.getPen().trim();
     if (!pen) return alert("Set your Pen Name on Home");
     const txt = inputEl.value.trim();
     if (!txt) return;
@@ -917,8 +1334,8 @@ function Gallery() {
   const listCard = Card(COPY.gallery.title, COPY.gallery.subtitle, grid);
 
   async function doUpload() {
-    const pen = (localStorage.getItem(LAST_PEN_KEY) || "").trim();
-    const mask = localStorage.getItem(LAST_MASK_KEY) || "Grey";
+    const pen = identity.getPen().trim();
+    const mask = identity.getMask();
     if (!pen) {
       alert("Set your pen name on Home first.");
       return;
@@ -1131,6 +1548,8 @@ function Fun() {
   );
 
   let trailOn = false;
+  let trailIntensity = 3;
+  let trailMemoryMs = 600;
   function spawnParticle(x, y) {
     const p = document.createElement("div");
     p.className = "particle";
@@ -1143,9 +1562,9 @@ function Fun() {
     const color = `hsla(${Math.floor(200 + Math.random() * 80)} 95% 65% / 1)`;
     p.style.background = color;
     p.style.boxShadow = `0 0 10px ${color}, 0 0 30px ${color}`;
-    p.style.animation = "pop 600ms ease-out forwards";
+    p.style.animation = `pop ${trailMemoryMs}ms ease-out forwards`;
     document.body.appendChild(p);
-    setTimeout(() => p.remove(), 620);
+    setTimeout(() => p.remove(), trailMemoryMs + 20);
   }
   function enableTrail() {
     if (trailOn) return;
@@ -1159,7 +1578,7 @@ function Fun() {
     removeEventListener("touchmove", trailTouch);
   }
   function trailMove(e) {
-    spawnParticle(e.pageX, e.pageY);
+    for (let i = 0; i < trailIntensity; i++) spawnParticle(e.pageX, e.pageY);
   }
   function trailTouch(e) {
     const t = e.touches[0];
@@ -1172,15 +1591,36 @@ function Fun() {
       onclick: () => {
         if (trailOn) {
           disableTrail();
-          trailBtn.textContent = "Enable trail";
+          trailBtn.textContent = COPY.fun.trailEnable;
         } else {
           enableTrail();
-          trailBtn.textContent = "Disable trail";
+          trailBtn.textContent = COPY.fun.trailDisable;
         }
       },
     },
-    "Enable trail"
+    COPY.fun.trailEnable
   );
+
+  const intensityLabel = h(
+    "label",
+    { class: "muted" },
+    COPY.fun.trailIntensity
+  );
+  const intensity = h("input", {
+    type: "range",
+    min: "1",
+    max: "5",
+    value: String(trailIntensity),
+  });
+  intensity.oninput = (e) => (trailIntensity = Number(e.target.value || 3));
+  const memoryLabel = h("label", { class: "muted" }, COPY.fun.trailMemory);
+  const memory = h("input", {
+    type: "range",
+    min: "300",
+    max: "1400",
+    value: String(trailMemoryMs),
+  });
+  memory.oninput = (e) => (trailMemoryMs = Number(e.target.value || 600));
 
   const QUOTES = {
     jokes: [
@@ -1239,6 +1679,20 @@ function Fun() {
     },
     "Generate"
   );
+  const copyQ = h(
+    "button",
+    {
+      class: "pill",
+      onclick: async () => {
+        try {
+          await navigator.clipboard.writeText(out.textContent || "");
+          copyQ.textContent = "Copied!";
+          setTimeout(() => (copyQ.textContent = COPY.fun.quotesCopy), 900);
+        } catch (e) {}
+      },
+    },
+    COPY.fun.quotesCopy
+  );
 
   const blob = h("div", {
     style:
@@ -1283,23 +1737,162 @@ function Fun() {
     },
     "—"
   );
+  const dieSel = h(
+    "select",
+    {},
+    h("option", { value: "6" }, "d6"),
+    h("option", { value: "20" }, "d20")
+  );
   const diceBtn = h(
     "button",
     {
       class: "pill",
       onclick: () => {
-        diceOut.textContent = String(1 + Math.floor(Math.random() * 6));
+        const faces = Number(dieSel.value || 6);
+        diceOut.textContent = String(1 + Math.floor(Math.random() * faces));
       },
     },
-    "Roll d6"
+    "Roll"
   );
+
+  // Constellation Drawer
+  const constWrap = h("div", { class: "constellation-wrap" });
+  const constCanvas = h("canvas", { class: "constellation" });
+  constWrap.append(constCanvas);
+  let ctx, cw, ch;
+  const stars = [];
+  function resizeConst() {
+    const r = constCanvas.getBoundingClientRect();
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    cw = Math.floor(r.width);
+    ch = 220;
+    constCanvas.width = cw * dpr;
+    constCanvas.height = ch * dpr;
+    constCanvas.style.height = ch + "px";
+    constCanvas.style.width = cw + "px";
+    ctx = constCanvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+  }
+  function addStar(x, y) {
+    stars.push({
+      x,
+      y,
+      life: 1,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
+    });
+    if (stars.length > 200) stars.shift();
+  }
+  function drawConst() {
+    if (!ctx) return;
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0, 0, cw, ch);
+    // draw lines between recent points
+    ctx.lineWidth = 1;
+    for (let i = 1; i < stars.length; i++) {
+      const a = stars[i - 1],
+        b = stars[i];
+      const alpha = Math.max(0, b.life * 0.9);
+      ctx.strokeStyle = `rgba(124,131,255,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+    // update/draw stars
+    stars.forEach((s) => {
+      s.x += s.vx;
+      s.y += s.vy;
+      s.life *= 0.985;
+      ctx.fillStyle = `rgba(188,211,255,${s.life})`;
+      ctx.shadowColor = "rgba(124,131,255,0.6)";
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    requestAnimationFrame(drawConst);
+  }
+  constCanvas.addEventListener("pointermove", (e) => {
+    const rect = constCanvas.getBoundingClientRect();
+    addStar(e.clientX - rect.left, e.clientY - rect.top);
+  });
+  setTimeout(() => {
+    resizeConst();
+    drawConst();
+  }, 0);
+  addEventListener("resize", resizeConst);
+
+  // Ambient Synth Pad
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  function createTone(freq) {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    filter.type = "lowpass";
+    filter.frequency.value = 2400;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.05);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0.0, now + 2.4);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now + 2.5);
+  }
+  const PAD_NOTES = {
+    "A minor": [220.0, 261.63, 329.63],
+    "F major": [174.61, 220.0, 261.63],
+    "G major": [196.0, 246.94, 392.0 / 2],
+    "C major": [130.81, 164.81, 261.63],
+  };
+  const padGrid = h("div", { class: "pad-grid" });
+  Object.entries(PAD_NOTES).forEach(([label, freqs]) => {
+    const pad = h(
+      "button",
+      {
+        class: "pad",
+        onmousedown: () => freqs.forEach(createTone),
+        ontouchstart: (e) => {
+          e.preventDefault();
+          freqs.forEach(createTone);
+        },
+      },
+      label
+    );
+    padGrid.append(pad);
+  });
 
   return h(
     "div",
     {},
     Card(COPY.fun.eyesTitle, COPY.fun.eyesSubtitle, eyesWrap),
     h("div", { style: "height:14px" }),
-    Card(COPY.fun.trailTitle, COPY.fun.trailSubtitle, h("div", {}, trailBtn)),
+    Card(
+      COPY.fun.trailTitle,
+      COPY.fun.trailSubtitle,
+      h(
+        "div",
+        {},
+        h("div", { class: "row-wrap" }, trailBtn),
+        h(
+          "div",
+          { class: "row-wrap", style: "margin-top:8px" },
+          h("div", { class: "row" }, intensityLabel, intensity),
+          h("div", { class: "row" }, memoryLabel, memory)
+        )
+      )
+    ),
     h("div", { style: "height:14px" }),
     Card(
       COPY.fun.quotesTitle,
@@ -1308,10 +1901,22 @@ function Fun() {
         "div",
         {},
         h("div", {}, select),
-        h("div", { style: "margin-top:10px" }, gen),
+        h(
+          "div",
+          { style: "margin-top:10px" },
+          h("div", { class: "row" }, gen, copyQ)
+        ),
         out
       )
     ),
+    h("div", { style: "height:14px" }),
+    Card(
+      COPY.fun.constellationsTitle,
+      COPY.fun.constellationsSubtitle,
+      constWrap
+    ),
+    h("div", { style: "height:14px" }),
+    Card(COPY.fun.synthTitle, COPY.fun.synthSubtitle, padGrid),
     h("div", { style: "height:14px" }),
     Card(
       COPY.fun.blobTitle,
@@ -1332,7 +1937,7 @@ function Fun() {
     Card(
       COPY.fun.diceTitle,
       COPY.fun.diceSubtitle,
-      h("div", {}, diceBtn, diceOut)
+      h("div", {}, h("div", { class: "row" }, dieSel, diceBtn), diceOut)
     )
   );
 }
@@ -1348,7 +1953,8 @@ function route() {
   else if (hash.startsWith("#fun")) app.append(Fun());
   else app.append(Home());
   setActiveNav();
-  updateIdentityBadge();
+  renderIdentityBadge();
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 window.addEventListener("hashchange", route);
@@ -1378,30 +1984,41 @@ const demoTracks = [
   const screen = document.getElementById("jbScreen").querySelector(".name");
   const maskIcon = document.getElementById("jbMaskIcon");
   const file = document.getElementById("jbFile");
+  const panel = document.getElementById("jbPanel");
+  const listEl = document.getElementById("jbList");
+  const closeBtn = document.getElementById("jbClose");
 
   let list = [];
   const { data, error } = await dbFetchTracks();
-  if (!error && data && data.length) list = data;
-  else list = demoTracks;
+  if (!error && Array.isArray(data)) list = data;
 
   let i = 0;
-  function setScreen(pen, mask) {
+  function titleFromPath(p) {
+    const file = labelFromPath(p);
+    const base = file.replace(/\.[^.]+$/, "");
+    return base.replace(/[\-_]+/g, " ");
+  }
+  function resolveTrackUrl(path) {
+    if (/^https?:/.test(path)) return path;
+    const { data } = supabase.storage.from("tracks").getPublicUrl(path);
+    return data.publicUrl;
+  }
+  function setScreen(pen, mask, path) {
     maskIcon.innerHTML = "";
-    maskIcon.append(maskSVG(mask || "Grey", 16));
-    screen.textContent = `${pen} (${mask})`;
+    maskIcon.append(maskSVG(mask || "Grey", 22));
+    const name = path ? titleFromPath(path) : "";
+    screen.textContent = name ? `${pen} — ${name}` : `${pen}`;
   }
   function load(k) {
+    if (!list || !list.length) return;
     i = (k + list.length) % list.length;
     const item = list[i];
-    let url = item.path;
-    if (!/^https?:/.test(url)) {
-      const { data } = supabase.storage.from("tracks").getPublicUrl(url);
-      url = data.publicUrl;
-    }
+    let url = resolveTrackUrl(item.path);
     audio.src = url;
-    setScreen(item.pen || "Unknown", item.mask || "Grey");
+    setScreen(item.pen || "Unknown", item.mask || "Grey", item.path);
     audio.play().catch(() => {});
     play.innerHTML = '<span class="jb-glyph">⏸</span>';
+    renderList();
   }
   function fmt(s) {
     s = Math.max(0, Math.floor(s || 0));
@@ -1432,32 +2049,107 @@ const demoTracks = [
 
   // Upload new track
   file.addEventListener("change", async () => {
-    const f = file.files[0];
-    if (!f) return;
-    const pen = (localStorage.getItem(LAST_PEN_KEY) || "").trim() || "Guest";
-    const mask = localStorage.getItem(LAST_MASK_KEY) || "Grey";
-    const ext = (f.name.split(".").pop() || "mp3").toLowerCase();
-    const path = `${pen}/${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2)}.${ext}`;
-    const up = await supabase.storage.from("tracks").upload(path, f, {
-      upsert: false,
-      contentType: f.type || undefined,
-    });
-    if (up.error) {
-      alert("Track upload failed: " + up.error.message);
-      return;
+    const files = file.files;
+    if (!files || files.length === 0) return;
+
+    for (const f of files) {
+      const pen = identity.getPen().trim() || "Guest";
+      const mask = identity.getMask();
+
+      // Separate name & extension
+      const dotIndex = f.name.lastIndexOf(".");
+      const base = dotIndex > -1 ? f.name.slice(0, dotIndex) : f.name;
+      const ext =
+        dotIndex > -1 ? f.name.slice(dotIndex + 1).toLowerCase() : "mp3";
+
+      const safeBase =
+        base
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[^a-z0-9\s-_]/g, "")
+          .trim()
+          .replace(/[\s_]+/g, "-")
+          .slice(0, 40) || "track";
+
+      // Build final path
+      const rand = Math.random().toString(36).slice(2, 8);
+      const path = `${pen}/${safeBase}__${Date.now()}_${rand}.${ext}`;
+
+      // Upload
+      const up = await supabase.storage.from("tracks").upload(path, f, {
+        upsert: false,
+        contentType: f.type || undefined,
+      });
+
+      if (up.error) {
+        alert("Track upload failed: " + up.error.message);
+        return;
+      }
+
+      // Insert into DB
+      const { error } = await dbInsertTrack({ pen, mask, path });
+      if (error) {
+        alert("DB insert failed: " + error.message);
+        return;
+      }
+
+      list.push({ pen, mask, path });
+      load(list.length - 1);
     }
-    const { error } = await dbInsertTrack({ pen, mask, path });
-    if (error) {
-      alert("DB insert failed: " + error.message);
-      return;
-    }
-    list.push({ pen, mask, path });
-    load(list.length - 1);
+
     file.value = "";
   });
 
-  // initial label
-  setScreen("PRISM FM", "Space Wizard");
+  if (list.length) {
+    const first = list[0];
+    i = 0;
+    audio.src = resolveTrackUrl(first.path);
+    setScreen(first.pen || "Unknown", first.mask || "Grey", first.path);
+  } else {
+    maskIcon.innerHTML = "";
+    screen.textContent = "No tracks — add one";
+  }
+
+  function labelFromPath(p) {
+    const file =
+      String(p || "")
+        .split("/")
+        .pop() || "";
+    return file;
+  }
+
+  function renderList() {
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    if (!list || !list.length) {
+      listEl.innerHTML =
+        '<div class="muted" style="padding:12px">No tracks yet. Upload one to begin.</div>';
+      return;
+    }
+    list.forEach((t, idx) => {
+      const who = h(
+        "div",
+        { class: "who" },
+        maskSVG(t.mask || "Grey", 14),
+        esc(t.pen || "Unknown")
+      );
+      const path = h("div", { class: "path" }, esc(labelFromPath(t.path)));
+      const row = h(
+        "div",
+        { class: "jb-item" + (idx === i ? " active" : "") },
+        who,
+        path
+      );
+      row.addEventListener("click", () => load(idx));
+      listEl.append(row);
+    });
+  }
+
+  // Toggle panel by tapping the screen area
+  document.getElementById("jbScreen").addEventListener("click", () => {
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) renderList();
+  });
+  if (closeBtn) closeBtn.addEventListener("click", () => (panel.hidden = true));
 })();
